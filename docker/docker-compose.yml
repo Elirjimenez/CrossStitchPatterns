@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+   web:
+     build:
+       context: ..
+       dockerfile: docker/Dockerfile
+     ports:
+       - "8000:8000"
+     environment:
+       - DATABASE_URL=postgresql://user:pass@db:5432/crossstitch
+     depends_on:
+       - db
+
+   db:
+     image: postgres:15
+     environment:
+       - POSTGRES_DB=crossstitch
+       - POSTGRES_USER=user
+       - POSTGRES_PASSWORD=pass
+     volumes:
+       - postgres_data:/var/lib/postgresql/data
