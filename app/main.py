@@ -3,10 +3,12 @@ Cross-Stitch Pattern Generator - Main Application
 
 This module initializes the FastAPI application and configures routes.
 """
+from contextlib import asynccontextmanager
+
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.web.api.routes import health
+from app.web.api.routes import health, patterns
 
 # Application metadata
 APP_TITLE = "Cross-Stitch Pattern Generator"
@@ -20,6 +22,14 @@ Convert images into cross-stitch patterns with fabric and thread calculations.
 * Store and retrieve patterns
 """
 APP_VERSION = "0.1.0"
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # TODO: Initialize database connection
+    # TODO: Set up logging
+    yield
+    # TODO: Close database connections
 
 
 def create_app() -> FastAPI:
@@ -36,6 +46,7 @@ def create_app() -> FastAPI:
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
+        lifespan=lifespan,
     )
 
     # Configure CORS
@@ -49,24 +60,10 @@ def create_app() -> FastAPI:
 
     # Register routes
     app.include_router(health.router, tags=["health"])
+    app.include_router(patterns.router, prefix="/api/patterns", tags=["patterns"])
 
     return app
 
 
 # Create application instance
 app = create_app()
-
-
-@app.on_event("startup")
-async def startup_event():
-    """Actions to perform on application startup."""
-    # TODO: Initialize database connection
-    # TODO: Set up logging
-    pass
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    """Actions to perform on application shutdown."""
-    # TODO: Close database connections
-    pass
