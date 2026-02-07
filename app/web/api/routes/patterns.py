@@ -1,9 +1,15 @@
-from fastapi import APIRouter
+from typing import List
+
+from fastapi import APIRouter, Form, UploadFile
 from pydantic import BaseModel, Field
 
 from app.application.use_cases.calculate_fabric_requirements import (
     CalculateFabricRequirements,
     FabricRequirementsRequest,
+)
+from app.application.use_cases.convert_image_to_pattern import (
+    ConvertImageRequest,
+    ConvertImageToPattern,
 )
 
 router = APIRouter()
@@ -38,14 +44,16 @@ class FabricResponseBody(BaseModel):
 @router.post("/calculate-fabric", response_model=FabricResponseBody)
 def calculate_fabric(body: FabricRequestBody) -> FabricResponseBody:
     use_case = CalculateFabricRequirements()
-    result = use_case.execute(FabricRequirementsRequest(
-        pattern_width=body.pattern_width,
-        pattern_height=body.pattern_height,
-        aida_count=body.aida_count,
-        num_colors=body.num_colors,
-        margin_cm=body.margin_cm,
-        num_strands=body.num_strands,
-    ))
+    result = use_case.execute(
+        FabricRequirementsRequest(
+            pattern_width=body.pattern_width,
+            pattern_height=body.pattern_height,
+            aida_count=body.aida_count,
+            num_colors=body.num_colors,
+            margin_cm=body.margin_cm,
+            num_strands=body.num_strands,
+        )
+    )
 
     return FabricResponseBody(
         fabric=FabricInfo(
@@ -58,4 +66,62 @@ def calculate_fabric(body: FabricRequestBody) -> FabricResponseBody:
             skeins_per_color=result.skeins_per_color,
             total_skeins=result.total_skeins,
         ),
+    )
+
+
+class GridInfo(BaseModel):
+    width: int
+    height: int
+    cells: List[List[int]]
+
+
+class DmcColorInfo(BaseModel):
+    number: str
+    name: str
+    r: int
+    g: int
+    b: int
+
+
+class ConvertResponseBody(BaseModel):
+    grid: GridInfo
+    palette: List[List[int]]
+    dmc_colors: List[DmcColorInfo]
+
+
+@router.post("/convert", response_model=ConvertResponseBody)
+async def convert_image(
+    file: UploadFile,
+    target_width: int = Form(gt=0),
+    target_height: int = Form(gt=0),
+    num_colors: int = Form(gt=0),
+) -> ConvertResponseBody:
+    image_data = await file.read()
+    use_case = ConvertImageToPattern()
+    result = use_case.execute(
+        ConvertImageRequest(
+            image_data=image_data,
+            target_width=target_width,
+            target_height=target_height,
+            num_colors=num_colors,
+        )
+    )
+
+    return ConvertResponseBody(
+        grid=GridInfo(
+            width=result.pattern.grid.width,
+            height=result.pattern.grid.height,
+            cells=result.pattern.grid.cells,
+        ),
+        palette=[list(c) for c in result.pattern.palette.colors],
+        dmc_colors=[
+            DmcColorInfo(
+                number=dmc.number,
+                name=dmc.name,
+                r=dmc.r,
+                g=dmc.g,
+                b=dmc.b,
+            )
+            for dmc in result.dmc_colors
+        ],
     )
