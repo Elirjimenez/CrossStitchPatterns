@@ -3,11 +3,16 @@ Cross-Stitch Pattern Generator - Main Application
 
 This module initializes the FastAPI application and configures routes.
 """
+
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from starlette.responses import JSONResponse
 
+from app.config import get_settings
+from app.domain.exceptions import DomainException
+from app.infrastructure.logging import setup_logging
 from app.web.api.routes import health, patterns
 
 # Application metadata
@@ -21,15 +26,18 @@ Convert images into cross-stitch patterns with fabric and thread calculations.
 * Generate printable PDF patterns
 * Store and retrieve patterns
 """
-APP_VERSION = "0.1.0"
+
+
+async def domain_exception_handler(request: Request, exc: DomainException) -> JSONResponse:
+    return JSONResponse(status_code=400, content={"detail": str(exc)})
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # TODO: Initialize database connection
-    # TODO: Set up logging
+    logger = setup_logging()
+    logger.info("application_startup")
     yield
-    # TODO: Close database connections
+    logger.info("application_shutdown")
 
 
 def create_app() -> FastAPI:
@@ -39,10 +47,12 @@ def create_app() -> FastAPI:
     Returns:
         FastAPI: Configured FastAPI application instance
     """
+    settings = get_settings()
+
     app = FastAPI(
         title=APP_TITLE,
         description=APP_DESCRIPTION,
-        version=APP_VERSION,
+        version=settings.app_version,
         docs_url="/api/docs",
         redoc_url="/api/redoc",
         openapi_url="/api/openapi.json",
@@ -57,6 +67,9 @@ def create_app() -> FastAPI:
         allow_methods=["*"],
         allow_headers=["*"],
     )
+
+    # Register exception handlers
+    app.add_exception_handler(DomainException, domain_exception_handler)
 
     # Register routes
     app.include_router(health.router, tags=["health"])

@@ -3,8 +3,11 @@ Health Check Endpoints
 
 Provides health status and system information endpoints.
 """
+
 from fastapi import APIRouter
 from pydantic import BaseModel
+
+from app.config import get_settings
 
 
 router = APIRouter()
@@ -28,7 +31,8 @@ async def health_check() -> HealthResponse:
     Returns:
         HealthResponse: Health status and version information
     """
+    settings = get_settings()
     return HealthResponse(
         status="healthy",
-        version="0.1.0"
+        version=settings.app_version,
     )

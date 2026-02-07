@@ -2,6 +2,8 @@ from __future__ import annotations
 from dataclasses import dataclass
 from math import ceil
 
+from app.domain.exceptions import InvalidFabricParametersError
+
 SKEIN_LENGTH_M = 8.0
 STRANDS_PER_SKEIN = 6
 THREAD_CONSTANT_CM = 19.6  # thread_per_stitch = THREAD_CONSTANT_CM / aida_count
@@ -33,15 +35,15 @@ def compute_floss_estimate(
         margin_ratio: Safety margin ratio (default 0.2 = 20%).
     """
     if total_stitches <= 0:
-        raise ValueError("total_stitches must be > 0")
+        raise InvalidFabricParametersError("total_stitches must be > 0")
     if num_colors <= 0:
-        raise ValueError("num_colors must be > 0")
+        raise InvalidFabricParametersError("num_colors must be > 0")
     if aida_count <= 0:
-        raise ValueError("aida_count must be > 0")
+        raise InvalidFabricParametersError("aida_count must be > 0")
     if not 1 <= num_strands <= 6:
-        raise ValueError("num_strands must be between 1 and 6")
+        raise InvalidFabricParametersError("num_strands must be between 1 and 6")
     if margin_ratio < 0:
-        raise ValueError("margin_ratio must be >= 0")
+        raise InvalidFabricParametersError("margin_ratio must be >= 0")
 
     thread_per_stitch_cm = THREAD_CONSTANT_CM / aida_count
     single_strand_per_skein_cm = SKEIN_LENGTH_M * 100 * STRANDS_PER_SKEIN / num_strands
