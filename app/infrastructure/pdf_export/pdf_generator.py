@@ -27,7 +27,7 @@ def render_overview_page(
     c.drawCentredString(PAGE_W / 2, title_y, title)
 
     # --- Footer text ---
-    stitch_text = f"{pattern.grid.width} x {pattern.grid.height} stitches"
+    stitch_text = f"Design size: {pattern.grid.width} x {pattern.grid.height} stitches"
     fabric_text = (
         f"Fabric: {fabric_size.width_cm:.1f} x {fabric_size.height_cm:.1f} cm "
         f"({aida_count}ct Aida, {margin_cm:.1f} cm margin)"

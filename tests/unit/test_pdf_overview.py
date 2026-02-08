@@ -72,7 +72,7 @@ def test_render_overview_contains_stitch_dimensions():
     )
 
     text = _extract_text(result)
-    assert "4 x 3 stitches" in text
+    assert "Design size: 4 x 3 stitches" in text
 
 
 def test_render_overview_contains_fabric_info():
