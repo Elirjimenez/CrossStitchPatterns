@@ -1,6 +1,6 @@
 from typing import List, Tuple
 
-from fastapi import APIRouter, Form, UploadFile
+from fastapi import APIRouter, Depends, Form, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -17,10 +17,15 @@ from app.application.use_cases.export_pattern_to_pdf import (
     ExportPdfRequest,
 )
 from app.domain.data.dmc_colors import DmcColor
-from app.domain.model.pattern import Pattern, PatternGrid, Palette
+from app.domain.model.pattern import Palette, Pattern, PatternGrid
+from app.infrastructure.image_processing.pillow_image_resizer import PillowImageResizer
 
 router = APIRouter()
 
+
+# -----------------------------
+# Calculate fabric requirements
+# -----------------------------
 
 class FabricRequestBody(BaseModel):
     pattern_width: int = Field(gt=0)
@@ -76,6 +81,10 @@ def calculate_fabric(body: FabricRequestBody) -> FabricResponseBody:
     )
 
 
+# -----------------------------
+# Convert image to pattern
+# -----------------------------
+
 class GridInfo(BaseModel):
     width: int
     height: int
@@ -96,15 +105,20 @@ class ConvertResponseBody(BaseModel):
     dmc_colors: List[DmcColorInfo]
 
 
+def get_convert_use_case() -> ConvertImageToPattern:
+    return ConvertImageToPattern(image_resizer=PillowImageResizer())
+
+
 @router.post("/convert", response_model=ConvertResponseBody)
 async def convert_image(
     file: UploadFile,
     target_width: int = Form(gt=0),
     target_height: int = Form(gt=0),
     num_colors: int = Form(gt=0),
+    use_case: ConvertImageToPattern = Depends(get_convert_use_case),
 ) -> ConvertResponseBody:
     image_data = await file.read()
-    use_case = ConvertImageToPattern()
+
     result = use_case.execute(
         ConvertImageRequest(
             image_data=image_data,
@@ -134,6 +148,10 @@ async def convert_image(
     )
 
 
+# -----------------------------
+# Export pattern to PDF
+# -----------------------------
+
 class ExportPdfRequestBody(BaseModel):
     grid: GridInfo
     palette: List[List[int]]
@@ -148,6 +166,7 @@ class ExportPdfRequestBody(BaseModel):
 @router.post("/export-pdf")
 def export_pdf(body: ExportPdfRequestBody) -> Response:
     palette_tuples: List[Tuple[int, int, int]] = [(c[0], c[1], c[2]) for c in body.palette]
+
     pattern = Pattern(
         grid=PatternGrid(
             width=body.grid.width,
@@ -156,8 +175,10 @@ def export_pdf(body: ExportPdfRequestBody) -> Response:
         ),
         palette=Palette(colors=palette_tuples),
     )
+
     dmc_colors = [
-        DmcColor(number=d.number, name=d.name, r=d.r, g=d.g, b=d.b) for d in body.dmc_colors
+        DmcColor(number=d.number, name=d.name, r=d.r, g=d.g, b=d.b)
+        for d in body.dmc_colors
     ]
 
     use_case = ExportPatternToPdf()
@@ -173,7 +194,4 @@ def export_pdf(body: ExportPdfRequestBody) -> Response:
         )
     )
 
-    return Response(
-        content=result.pdf_bytes,
-        media_type="application/pdf",
-    )
+    return Response(content=result.pdf_bytes, media_type="application/pdf")
