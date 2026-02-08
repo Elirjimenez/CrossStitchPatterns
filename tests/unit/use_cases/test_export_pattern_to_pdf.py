@@ -1,44 +1,34 @@
-from io import BytesIO
 
-import pypdf
 import pytest
 
-from app.domain.model.pattern import Pattern, PatternGrid, Palette
-from app.domain.data.dmc_colors import DmcColor
 from app.application.use_cases.export_pattern_to_pdf import (
     ExportPdfRequest,
     ExportPdfResult,
     ExportPatternToPdf,
 )
+from app.application.ports.pattern_pdf_exporter import PatternPdfExporter
+from tests.helpers.pattern_fixtures import make_pattern, make_dmc_colors
 
 
-def _make_pattern() -> Pattern:
-    grid = PatternGrid(
-        width=4,
-        height=3,
-        cells=[
-            [0, 1, 2, 0],
-            [1, 2, 0, 1],
-            [2, 0, 1, 2],
-        ],
-    )
-    palette = Palette(colors=[(255, 0, 0), (0, 128, 0), (0, 0, 255)])
-    return Pattern(grid=grid, palette=palette)
-
-
-def _make_dmc_colors() -> list:
-    return [
-        DmcColor(number="321", name="Red", r=255, g=0, b=0),
-        DmcColor(number="699", name="Green", r=0, g=128, b=0),
-        DmcColor(number="796", name="Blue", r=0, g=0, b=255),
-    ]
+class FakePatternPdfExporter(PatternPdfExporter):
+    def render(
+        self,
+        pattern,
+        title,
+        fabric_size,
+        aida_count,
+        margin_cm,
+        legend_entries,
+        variant="color",
+    ) -> bytes:
+        return b"%PDF-FAKE"
 
 
 def test_execute_returns_pdf_bytes():
-    use_case = ExportPatternToPdf()
+    use_case = ExportPatternToPdf(exporter=FakePatternPdfExporter())
     request = ExportPdfRequest(
-        pattern=_make_pattern(),
-        dmc_colors=_make_dmc_colors(),
+        pattern=make_pattern(),
+        dmc_colors=make_dmc_colors(),
         title="Test Pattern",
     )
 
@@ -51,10 +41,10 @@ def test_execute_returns_pdf_bytes():
 
 
 def test_result_variant_matches_request():
-    use_case = ExportPatternToPdf()
+    use_case = ExportPatternToPdf(exporter=FakePatternPdfExporter())
     request = ExportPdfRequest(
-        pattern=_make_pattern(),
-        dmc_colors=_make_dmc_colors(),
+        pattern=make_pattern(),
+        dmc_colors=make_dmc_colors(),
         title="Test",
         variant="bw",
     )
@@ -65,10 +55,10 @@ def test_result_variant_matches_request():
 
 
 def test_result_has_two_pages():
-    use_case = ExportPatternToPdf()
+    use_case = ExportPatternToPdf(exporter=FakePatternPdfExporter())
     request = ExportPdfRequest(
-        pattern=_make_pattern(),
-        dmc_colors=_make_dmc_colors(),
+        pattern=make_pattern(),
+        dmc_colors=make_dmc_colors(),
         title="Test",
     )
 
@@ -77,26 +67,11 @@ def test_result_has_two_pages():
     assert result.num_pages == 2
 
 
-def test_pdf_contains_legend_page():
-    use_case = ExportPatternToPdf()
-    request = ExportPdfRequest(
-        pattern=_make_pattern(),
-        dmc_colors=_make_dmc_colors(),
-        title="Test",
-    )
-
-    result = use_case.execute(request)
-
-    reader = pypdf.PdfReader(BytesIO(result.pdf_bytes))
-    legend_text = reader.pages[1].extract_text()
-    assert "Legend" in legend_text
-
-
 def test_rejects_empty_title():
-    use_case = ExportPatternToPdf()
+    use_case = ExportPatternToPdf(exporter=FakePatternPdfExporter())
     request = ExportPdfRequest(
-        pattern=_make_pattern(),
-        dmc_colors=_make_dmc_colors(),
+        pattern=make_pattern(),
+        dmc_colors=make_dmc_colors(),
         title="",
     )
 
@@ -105,10 +80,10 @@ def test_rejects_empty_title():
 
 
 def test_rejects_invalid_variant():
-    use_case = ExportPatternToPdf()
+    use_case = ExportPatternToPdf(exporter=FakePatternPdfExporter())
     request = ExportPdfRequest(
-        pattern=_make_pattern(),
-        dmc_colors=_make_dmc_colors(),
+        pattern=make_pattern(),
+        dmc_colors=make_dmc_colors(),
         title="Test",
         variant="grayscale",
     )

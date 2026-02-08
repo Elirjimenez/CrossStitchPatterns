@@ -1,73 +1,20 @@
 from io import BytesIO
 
 import pypdf
-import pytest
 
-from app.domain.model.pattern import Pattern, PatternGrid, Palette
 from app.domain.services.fabric import FabricSize
-from app.infrastructure.pdf_export.pdf_generator import (
-    LegendEntry,
-    render_pattern_pdf,
-)
-
-
-def _make_pattern() -> Pattern:
-    grid = PatternGrid(
-        width=4,
-        height=3,
-        cells=[
-            [0, 1, 2, 0],
-            [1, 2, 0, 1],
-            [2, 0, 1, 2],
-        ],
-    )
-    palette = Palette(colors=[(255, 0, 0), (0, 128, 0), (0, 0, 255)])
-    return Pattern(grid=grid, palette=palette)
-
-
-def _make_legend_entries() -> list:
-    return [
-        LegendEntry(
-            symbol="■",
-            dmc_number="321",
-            dmc_name="Red",
-            r=255,
-            g=0,
-            b=0,
-            stitch_count=4,
-            skeins=1,
-        ),
-        LegendEntry(
-            symbol="●",
-            dmc_number="699",
-            dmc_name="Green",
-            r=0,
-            g=128,
-            b=0,
-            stitch_count=4,
-            skeins=1,
-        ),
-        LegendEntry(
-            symbol="▲",
-            dmc_number="796",
-            dmc_name="Blue",
-            r=0,
-            g=0,
-            b=255,
-            stitch_count=4,
-            skeins=1,
-        ),
-    ]
+from app.infrastructure.pdf_export.pdf_generator import render_pattern_pdf
+from tests.helpers.pattern_fixtures import make_pattern, make_legend_entries
 
 
 def _render() -> bytes:
     return render_pattern_pdf(
-        pattern=_make_pattern(),
+        pattern=make_pattern(),
         title="Test Pattern",
         fabric_size=FabricSize(width_cm=20.0, height_cm=15.0),
         aida_count=14,
         margin_cm=5.0,
-        legend_entries=_make_legend_entries(),
+        legend_entries=make_legend_entries(),
     )
 
 
