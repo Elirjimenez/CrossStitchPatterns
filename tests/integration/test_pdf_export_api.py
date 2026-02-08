@@ -45,14 +45,15 @@ def test_export_pdf_returns_200_with_pdf_content():
     assert response.content[:5] == b"%PDF-"
 
 
-def test_export_pdf_has_two_pages():
+def test_export_pdf_has_three_pages():
+    """4×3 pattern → overview + legend + 1 grid page = 3 pages."""
     response = client.post(
         "/api/patterns/export-pdf",
         json=_make_export_body(),
     )
 
     reader = pypdf.PdfReader(BytesIO(response.content))
-    assert len(reader.pages) == 2
+    assert len(reader.pages) == 3
 
 
 def test_export_pdf_invalid_input_returns_422():

@@ -1,5 +1,5 @@
 import pytest
-from app.domain.services.symbol_map import assign_symbols
+from app.domain.services.symbol_map import assign_symbols, contrast_color
 from app.domain.exceptions import DomainException
 
 
@@ -70,3 +70,31 @@ def test_all_symbols_are_unique():
     from app.domain.services.symbol_map import SYMBOLS
 
     assert len(SYMBOLS) == len(set(SYMBOLS))
+
+
+
+def test_contrast_color_black_returns_white():
+    assert contrast_color(0, 0, 0) == (255, 255, 255)
+
+
+def test_contrast_color_white_returns_black():
+    assert contrast_color(255, 255, 255) == (0, 0, 0)
+
+
+def test_contrast_color_red_returns_white():
+    # Red is dark (luminance ~0.30)
+    assert contrast_color(255, 0, 0) == (255, 255, 255)
+
+
+def test_contrast_color_yellow_returns_black():
+    # Yellow is light (luminance ~0.89)
+    assert contrast_color(255, 255, 0) == (0, 0, 0)
+
+
+def test_contrast_color_dark_green_returns_white():
+    # (0, 128, 0) luminance ~0.29
+    assert contrast_color(0, 128, 0) == (255, 255, 255)
+
+
+def test_contrast_color_light_gray_returns_black():
+    assert contrast_color(200, 200, 200) == (0, 0, 0)
