@@ -28,6 +28,7 @@ router = APIRouter()
 # Calculate fabric requirements
 # -----------------------------
 
+
 class FabricRequestBody(BaseModel):
     pattern_width: int = Field(gt=0)
     pattern_height: int = Field(gt=0)
@@ -85,6 +86,7 @@ def calculate_fabric(body: FabricRequestBody) -> FabricResponseBody:
 # -----------------------------
 # Convert image to pattern
 # -----------------------------
+
 
 class GridInfo(BaseModel):
     width: int
@@ -153,6 +155,7 @@ async def convert_image(
 # Export pattern to PDF
 # -----------------------------
 
+
 class ExportPdfRequestBody(BaseModel):
     grid: GridInfo
     palette: List[List[int]]
@@ -178,8 +181,7 @@ def export_pdf(body: ExportPdfRequestBody) -> Response:
     )
 
     dmc_colors = [
-        DmcColor(number=d.number, name=d.name, r=d.r, g=d.g, b=d.b)
-        for d in body.dmc_colors
+        DmcColor(number=d.number, name=d.name, r=d.r, g=d.g, b=d.b) for d in body.dmc_colors
     ]
 
     use_case = ExportPatternToPdf(exporter=ReportLabPatternPdfExporter())
