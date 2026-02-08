@@ -3,6 +3,6 @@ from typing import Protocol, List
 
 from app.domain.model.pattern import RGB
 
+
 class ImageResizer(Protocol):
-    def load_and_resize(self, image_bytes: bytes, width: int, height: int) -> List[List[RGB]]:
-        ...
+    def load_and_resize(self, image_bytes: bytes, width: int, height: int) -> List[List[RGB]]: ...

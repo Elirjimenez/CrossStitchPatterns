@@ -7,6 +7,7 @@ from PIL import Image
 from app.application.ports.image_resizer import ImageResizer
 from app.domain.model.pattern import RGB
 
+
 class PillowImageResizer(ImageResizer):
     def load_and_resize(self, image_bytes: bytes, width: int, height: int) -> List[List[RGB]]:
         if width <= 0 or height <= 0:

@@ -8,6 +8,7 @@ from app.domain.data.dmc_colors import DmcColor
 from app.domain.model.pattern import Pattern, PatternGrid
 from app.domain.services.color_matching import select_palette
 
+
 @dataclass(frozen=True)
 class ConvertImageRequest:
     image_data: bytes
@@ -20,6 +21,7 @@ class ConvertImageRequest:
 class ConvertImageResult:
     pattern: Pattern
     dmc_colors: List[DmcColor]
+
 
 class ConvertImageToPattern:
     def __init__(self, image_resizer: ImageResizer):

@@ -70,6 +70,3 @@ def test_convert_palette_colors_are_valid_dmc():
     dmc_rgb_set = {(c.r, c.g, c.b) for c in DMC_COLORS.values()}
     for color in result.pattern.palette.colors:
         assert color in dmc_rgb_set
-
-
-
