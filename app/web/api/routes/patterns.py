@@ -1,6 +1,7 @@
-from typing import List
+from typing import List, Tuple
 
 from fastapi import APIRouter, Form, UploadFile
+from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
 from app.application.use_cases.calculate_fabric_requirements import (
@@ -11,6 +12,12 @@ from app.application.use_cases.convert_image_to_pattern import (
     ConvertImageRequest,
     ConvertImageToPattern,
 )
+from app.application.use_cases.export_pattern_to_pdf import (
+    ExportPatternToPdf,
+    ExportPdfRequest,
+)
+from app.domain.data.dmc_colors import DmcColor
+from app.domain.model.pattern import Pattern, PatternGrid, Palette
 
 router = APIRouter()
 
@@ -124,4 +131,49 @@ async def convert_image(
             )
             for dmc in result.dmc_colors
         ],
+    )
+
+
+class ExportPdfRequestBody(BaseModel):
+    grid: GridInfo
+    palette: List[List[int]]
+    dmc_colors: List[DmcColorInfo]
+    title: str = Field(min_length=1)
+    aida_count: int = Field(default=14, gt=0)
+    num_strands: int = Field(default=2, ge=1, le=6)
+    margin_cm: float = Field(default=5.0, ge=0)
+    variant: str = Field(default="color", pattern="^(color|bw)$")
+
+
+@router.post("/export-pdf")
+def export_pdf(body: ExportPdfRequestBody) -> Response:
+    palette_tuples: List[Tuple[int, int, int]] = [(c[0], c[1], c[2]) for c in body.palette]
+    pattern = Pattern(
+        grid=PatternGrid(
+            width=body.grid.width,
+            height=body.grid.height,
+            cells=body.grid.cells,
+        ),
+        palette=Palette(colors=palette_tuples),
+    )
+    dmc_colors = [
+        DmcColor(number=d.number, name=d.name, r=d.r, g=d.g, b=d.b) for d in body.dmc_colors
+    ]
+
+    use_case = ExportPatternToPdf()
+    result = use_case.execute(
+        ExportPdfRequest(
+            pattern=pattern,
+            dmc_colors=dmc_colors,
+            title=body.title,
+            aida_count=body.aida_count,
+            num_strands=body.num_strands,
+            margin_cm=body.margin_cm,
+            variant=body.variant,
+        )
+    )
+
+    return Response(
+        content=result.pdf_bytes,
+        media_type="application/pdf",
     )
