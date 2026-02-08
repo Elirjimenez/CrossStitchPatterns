@@ -50,13 +50,22 @@ def test_fabric_requirements_rejects_invalid_input():
     use_case = CalculateFabricRequirements()
 
     with pytest.raises(ValueError):
-        use_case.execute(FabricRequirementsRequest(
-            pattern_width=0, pattern_height=100,
-            aida_count=14, num_colors=8,
-        ))
+        use_case.execute(
+            FabricRequirementsRequest(
+                pattern_width=0,
+                pattern_height=100,
+                aida_count=14,
+                num_colors=8,
+            )
+        )
 
     with pytest.raises(ValueError):
-        use_case.execute(FabricRequirementsRequest(
-            pattern_width=140, pattern_height=100,
-            aida_count=14, num_colors=8, num_strands=7,
-        ))
+        use_case.execute(
+            FabricRequirementsRequest(
+                pattern_width=140,
+                pattern_height=100,
+                aida_count=14,
+                num_colors=8,
+                num_strands=7,
+            )
+        )
