@@ -1,4 +1,8 @@
+from io import BytesIO
+
+import pypdf
 import pytest
+
 from app.domain.model.pattern import Pattern, PatternGrid, Palette
 from app.domain.data.dmc_colors import DmcColor
 from app.application.use_cases.export_pattern_to_pdf import (
@@ -60,7 +64,7 @@ def test_result_variant_matches_request():
     assert result.variant == "bw"
 
 
-def test_result_has_one_page():
+def test_result_has_two_pages():
     use_case = ExportPatternToPdf()
     request = ExportPdfRequest(
         pattern=_make_pattern(),
@@ -70,7 +74,22 @@ def test_result_has_one_page():
 
     result = use_case.execute(request)
 
-    assert result.num_pages == 1
+    assert result.num_pages == 2
+
+
+def test_pdf_contains_legend_page():
+    use_case = ExportPatternToPdf()
+    request = ExportPdfRequest(
+        pattern=_make_pattern(),
+        dmc_colors=_make_dmc_colors(),
+        title="Test",
+    )
+
+    result = use_case.execute(request)
+
+    reader = pypdf.PdfReader(BytesIO(result.pdf_bytes))
+    legend_text = reader.pages[1].extract_text()
+    assert "Legend" in legend_text
 
 
 def test_rejects_empty_title():

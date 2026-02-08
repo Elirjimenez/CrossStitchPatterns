@@ -1,4 +1,8 @@
+from __future__ import annotations
+
+from dataclasses import dataclass
 from io import BytesIO
+from typing import List
 
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
@@ -11,16 +15,26 @@ PAGE_W, PAGE_H = A4
 MARGIN = 2 * cm
 
 
-def render_overview_page(
+@dataclass(frozen=True)
+class LegendEntry:
+    symbol: str
+    dmc_number: str
+    dmc_name: str
+    r: int
+    g: int
+    b: int
+    stitch_count: int
+    skeins: int
+
+
+def _draw_overview_page(
+    c: Canvas,
     pattern: Pattern,
     title: str,
     fabric_size: FabricSize,
     aida_count: int,
     margin_cm: float,
-) -> bytes:
-    buf = BytesIO()
-    c = Canvas(buf, pagesize=A4)
-
+) -> None:
     # --- Title ---
     c.setFont("Helvetica-Bold", 24)
     title_y = PAGE_H - MARGIN
@@ -69,5 +83,93 @@ def render_overview_page(
             c.rect(cx, cy, cell_w, cell_h, stroke=0, fill=1)
 
     c.showPage()
+
+
+def _draw_legend_page(c: Canvas, legend_entries: List[LegendEntry]) -> None:
+    # --- Title ---
+    c.setFont("Helvetica-Bold", 18)
+    title_y = PAGE_H - MARGIN
+    c.drawCentredString(PAGE_W / 2, title_y, "Legend")
+
+    # --- Table headers ---
+    header_y = title_y - 30
+    col_symbol = MARGIN
+    col_color = MARGIN + 30
+    col_dmc = MARGIN + 60
+    col_name = MARGIN + 100
+    col_stitches = PAGE_W - MARGIN - 100
+    col_skeins = PAGE_W - MARGIN - 40
+
+    c.setFont("Helvetica-Bold", 10)
+    c.drawString(col_symbol, header_y, "Sym")
+    c.drawString(col_color, header_y, "Color")
+    c.drawString(col_dmc, header_y, "DMC #")
+    c.drawString(col_name, header_y, "Name")
+    c.drawString(col_stitches, header_y, "Stitches")
+    c.drawString(col_skeins, header_y, "Skeins")
+
+    # --- Header underline ---
+    line_y = header_y - 4
+    c.setLineWidth(0.5)
+    c.line(MARGIN, line_y, PAGE_W - MARGIN, line_y)
+
+    # --- Table rows ---
+    row_y = header_y - 20
+    row_height = 18
+    swatch_size = 10
+
+    c.setFont("Helvetica", 9)
+    for entry in legend_entries:
+        # Symbol
+        c.drawString(col_symbol, row_y, entry.symbol)
+
+        # Color swatch
+        c.setFillColorRGB(entry.r / 255.0, entry.g / 255.0, entry.b / 255.0)
+        c.rect(col_color, row_y - 2, swatch_size, swatch_size, stroke=1, fill=1)
+
+        # DMC number
+        c.setFillColorRGB(0, 0, 0)
+        c.drawString(col_dmc, row_y, entry.dmc_number)
+
+        # DMC name
+        c.drawString(col_name, row_y, entry.dmc_name)
+
+        # Stitch count
+        c.drawString(col_stitches, row_y, str(entry.stitch_count))
+
+        # Skeins
+        c.drawString(col_skeins, row_y, str(entry.skeins))
+
+        row_y -= row_height
+
+    c.showPage()
+
+
+def render_overview_page(
+    pattern: Pattern,
+    title: str,
+    fabric_size: FabricSize,
+    aida_count: int,
+    margin_cm: float,
+) -> bytes:
+    buf = BytesIO()
+    c = Canvas(buf, pagesize=A4)
+    _draw_overview_page(c, pattern, title, fabric_size, aida_count, margin_cm)
+    c.save()
+    return buf.getvalue()
+
+
+def render_pattern_pdf(
+    pattern: Pattern,
+    title: str,
+    fabric_size: FabricSize,
+    aida_count: int,
+    margin_cm: float,
+    legend_entries: List[LegendEntry],
+) -> bytes:
+    buf = BytesIO()
+    c = Canvas(buf, pagesize=A4)
+    _draw_overview_page(c, pattern, title, fabric_size, aida_count, margin_cm)
+    _draw_legend_page(c, legend_entries)
     c.save()
     return buf.getvalue()

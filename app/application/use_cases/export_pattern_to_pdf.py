@@ -7,7 +7,13 @@ from app.domain.data.dmc_colors import DmcColor
 from app.domain.exceptions import DomainException
 from app.domain.model.pattern import Pattern
 from app.domain.services.fabric import compute_fabric_size_cm
-from app.infrastructure.pdf_export.pdf_generator import render_overview_page
+from app.domain.services.floss import compute_per_color_floss
+from app.domain.services.stitch_count import count_stitches_per_color
+from app.domain.services.symbol_map import assign_symbols
+from app.infrastructure.pdf_export.pdf_generator import (
+    LegendEntry,
+    render_pattern_pdf,
+)
 
 VALID_VARIANTS = {"color", "bw"}
 
@@ -46,16 +52,38 @@ class ExportPatternToPdf:
             margin_cm=request.margin_cm,
         )
 
-        pdf_bytes = render_overview_page(
+        stitch_counts = count_stitches_per_color(request.pattern.grid)
+        symbols = assign_symbols(len(request.pattern.palette.colors))
+        floss = compute_per_color_floss(stitch_counts, request.aida_count, request.num_strands)
+
+        legend_entries: List[LegendEntry] = []
+        for f in floss:
+            dmc = request.dmc_colors[f.palette_index]
+            sym = symbols[f.palette_index]
+            legend_entries.append(
+                LegendEntry(
+                    symbol=sym,
+                    dmc_number=dmc.number,
+                    dmc_name=dmc.name,
+                    r=dmc.r,
+                    g=dmc.g,
+                    b=dmc.b,
+                    stitch_count=f.stitch_count,
+                    skeins=f.skeins,
+                )
+            )
+
+        pdf_bytes = render_pattern_pdf(
             pattern=request.pattern,
             title=request.title,
             fabric_size=fabric_size,
             aida_count=request.aida_count,
             margin_cm=request.margin_cm,
+            legend_entries=legend_entries,
         )
 
         return ExportPdfResult(
             pdf_bytes=pdf_bytes,
-            num_pages=1,
+            num_pages=2,
             variant=request.variant,
         )

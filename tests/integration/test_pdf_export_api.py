@@ -1,3 +1,6 @@
+from io import BytesIO
+
+import pypdf
 from fastapi.testclient import TestClient
 
 from app.main import app
@@ -40,6 +43,16 @@ def test_export_pdf_returns_200_with_pdf_content():
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
     assert response.content[:5] == b"%PDF-"
+
+
+def test_export_pdf_has_two_pages():
+    response = client.post(
+        "/api/patterns/export-pdf",
+        json=_make_export_body(),
+    )
+
+    reader = pypdf.PdfReader(BytesIO(response.content))
+    assert len(reader.pages) == 2
 
 
 def test_export_pdf_invalid_input_returns_422():
