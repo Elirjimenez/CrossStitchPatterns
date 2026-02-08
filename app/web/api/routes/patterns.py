@@ -19,6 +19,7 @@ from app.application.use_cases.export_pattern_to_pdf import (
 from app.domain.data.dmc_colors import DmcColor
 from app.domain.model.pattern import Palette, Pattern, PatternGrid
 from app.infrastructure.image_processing.pillow_image_resizer import PillowImageResizer
+from app.infrastructure.pdf_export.pattern_pdf_exporter import ReportLabPatternPdfExporter
 
 router = APIRouter()
 
@@ -181,7 +182,7 @@ def export_pdf(body: ExportPdfRequestBody) -> Response:
         for d in body.dmc_colors
     ]
 
-    use_case = ExportPatternToPdf()
+    use_case = ExportPatternToPdf(exporter=ReportLabPatternPdfExporter())
     result = use_case.execute(
         ExportPdfRequest(
             pattern=pattern,
