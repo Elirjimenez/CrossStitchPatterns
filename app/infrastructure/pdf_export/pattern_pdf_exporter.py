@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import List
+from typing import List, Optional
 
 from app.application.ports.pattern_pdf_exporter import (
     LegendEntryDTO,
@@ -8,6 +8,7 @@ from app.application.ports.pattern_pdf_exporter import (
 )
 from app.domain.model.pattern import Pattern
 from app.domain.services.fabric import FabricSize
+from app.domain.services.pattern_tiling import PageTile
 from app.infrastructure.pdf_export.pdf_generator import (
     LegendEntry,
     render_pattern_pdf,
@@ -24,8 +25,9 @@ class ReportLabPatternPdfExporter(PatternPdfExporter):
         margin_cm: float,
         legend_entries: List[LegendEntryDTO],
         variant: str = "color",
+        symbols: Optional[List[str]] = None,
+        tiles: Optional[List[PageTile]] = None,
     ) -> bytes:
-        # Adapt DTO -> infrastructure LegendEntry (renderer-specific)
         infra_legend_entries = [
             LegendEntry(
                 symbol=e.symbol,
@@ -40,8 +42,6 @@ class ReportLabPatternPdfExporter(PatternPdfExporter):
             for e in legend_entries
         ]
 
-        # If your current renderer doesn't use variant yet, we still accept it
-        # to keep the port stable for future extensions.
         return render_pattern_pdf(
             pattern=pattern,
             title=title,
@@ -49,4 +49,7 @@ class ReportLabPatternPdfExporter(PatternPdfExporter):
             aida_count=aida_count,
             margin_cm=margin_cm,
             legend_entries=infra_legend_entries,
+            symbols=symbols,
+            tiles=tiles,
+            variant=variant,
         )

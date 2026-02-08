@@ -1,4 +1,3 @@
-
 import pytest
 
 from app.application.use_cases.export_pattern_to_pdf import (
@@ -20,6 +19,8 @@ class FakePatternPdfExporter(PatternPdfExporter):
         margin_cm,
         legend_entries,
         variant="color",
+        symbols=None,
+        tiles=None,
     ) -> bytes:
         return b"%PDF-FAKE"
 
@@ -54,7 +55,8 @@ def test_result_variant_matches_request():
     assert result.variant == "bw"
 
 
-def test_result_has_two_pages():
+def test_result_has_three_pages_for_small_pattern():
+    """4×3 pattern → 1 grid tile → 2 (overview+legend) + 1 = 3 pages."""
     use_case = ExportPatternToPdf(exporter=FakePatternPdfExporter())
     request = ExportPdfRequest(
         pattern=make_pattern(),
@@ -64,7 +66,7 @@ def test_result_has_two_pages():
 
     result = use_case.execute(request)
 
-    assert result.num_pages == 2
+    assert result.num_pages == 3
 
 
 def test_rejects_empty_title():

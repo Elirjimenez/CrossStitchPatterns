@@ -10,7 +10,11 @@ from app.domain.model.pattern import Pattern
 from app.domain.services.fabric import compute_fabric_size_cm
 from app.domain.services.floss import compute_per_color_floss
 from app.domain.services.stitch_count import count_stitches_per_color
+from app.domain.services.pattern_tiling import compute_tiles
 from app.domain.services.symbol_map import assign_symbols
+
+COLS_PER_PAGE = 32
+ROWS_PER_PAGE = 49
 
 VALID_VARIANTS = {"color", "bw"}
 
@@ -46,9 +50,7 @@ class ExportPatternToPdf:
             )
 
         if len(request.dmc_colors) != len(request.pattern.palette.colors):
-            raise DomainException(
-                "dmc_colors length must match pattern palette length"
-            )
+            raise DomainException("dmc_colors length must match pattern palette length")
 
         fabric_size = compute_fabric_size_cm(
             stitches_w=request.pattern.grid.width,
@@ -78,6 +80,13 @@ class ExportPatternToPdf:
                 )
             )
 
+        tiling = compute_tiles(
+            grid_width=request.pattern.grid.width,
+            grid_height=request.pattern.grid.height,
+            cols_per_page=COLS_PER_PAGE,
+            rows_per_page=ROWS_PER_PAGE,
+        )
+
         pdf_bytes = self._exporter.render(
             pattern=request.pattern,
             title=request.title,
@@ -86,12 +95,13 @@ class ExportPatternToPdf:
             margin_cm=request.margin_cm,
             legend_entries=legend_entries,
             variant=request.variant,
+            symbols=symbols,
+            tiles=tiling.tiles,
         )
 
-        # If your exporter doesn't report num_pages yet, keep it stable:
-        # either set to 1 or leave as 2 if that's your current PDF structure.
+        num_pages = 2 + tiling.total_pages
         return ExportPdfResult(
             pdf_bytes=pdf_bytes,
-            num_pages=2,
+            num_pages=num_pages,
             variant=request.variant,
         )

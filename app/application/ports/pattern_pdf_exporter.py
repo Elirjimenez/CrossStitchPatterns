@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import List, Protocol
+from typing import List, Optional, Protocol
 
 from app.domain.model.pattern import Pattern
 from app.domain.services.fabric import FabricSize
+from app.domain.services.pattern_tiling import PageTile
 
 
 @dataclass(frozen=True)
@@ -29,5 +30,6 @@ class PatternPdfExporter(Protocol):
         margin_cm: float,
         legend_entries: List[LegendEntryDTO],
         variant: str = "color",
-    ) -> bytes:
-        ...
+        symbols: Optional[List[str]] = None,
+        tiles: Optional[List[PageTile]] = None,
+    ) -> bytes: ...

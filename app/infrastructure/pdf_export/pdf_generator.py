@@ -10,6 +10,7 @@ from reportlab.pdfgen.canvas import Canvas
 
 from app.domain.model.pattern import Pattern
 from app.domain.services.fabric import FabricSize
+from app.domain.services.pattern_tiling import PageTile
 
 PAGE_W, PAGE_H = A4
 MARGIN = 2 * cm
@@ -166,10 +167,21 @@ def render_pattern_pdf(
     aida_count: int,
     margin_cm: float,
     legend_entries: List[LegendEntry],
+    symbols: List[str] | None = None,
+    tiles: List[PageTile] | None = None,
+    variant: str = "color",
 ) -> bytes:
+    from app.infrastructure.pdf_export.pattern_renderer import _draw_grid_page
+
     buf = BytesIO()
     c = Canvas(buf, pagesize=A4)
     _draw_overview_page(c, pattern, title, fabric_size, aida_count, margin_cm)
     _draw_legend_page(c, legend_entries)
+
+    if symbols and tiles:
+        total_grid_pages = len(tiles)
+        for i, tile in enumerate(tiles):
+            _draw_grid_page(c, pattern, symbols, tile, i + 1, total_grid_pages, variant)
+
     c.save()
     return buf.getvalue()

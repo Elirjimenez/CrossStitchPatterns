@@ -1,6 +1,7 @@
 from typing import List
 
 from app.domain.exceptions import DomainException
+from app.domain.model.pattern import RGB
 
 SYMBOLS: List[str] = [
     # Filled geometric shapes
@@ -229,6 +230,11 @@ SYMBOLS: List[str] = [
     "☸",
     "☯",
 ]
+
+
+def contrast_color(r: int, g: int, b: int) -> RGB:
+    luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255.0
+    return (255, 255, 255) if luminance < 0.5 else (0, 0, 0)
 
 
 def assign_symbols(num_colors: int) -> List[str]:
