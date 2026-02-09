@@ -20,3 +20,9 @@ class PatternNotFoundError(DomainException):
     """Raised when a pattern is not found."""
 
     pass
+
+
+class ProjectNotFoundError(DomainException):
+    """Raised when a project is not found."""
+
+    pass
