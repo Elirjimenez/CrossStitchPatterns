@@ -10,11 +10,15 @@ from app.domain.model.pattern import Pattern
 from app.domain.services.fabric import compute_fabric_size_cm
 from app.domain.services.floss import compute_per_color_floss
 from app.domain.services.stitch_count import count_stitches_per_color
-from app.domain.services.pattern_tiling import compute_tiles
+from app.domain.services.pattern_tiling import (
+    compute_cell_size_mm,
+    compute_tiles,
+    cols_per_page,
+    rows_per_page,
+)
 from app.domain.services.symbol_map import assign_symbols
 
-COLS_PER_PAGE = 32
-ROWS_PER_PAGE = 49
+DEFAULT_CELL_SIZE_MM = 5.0
 
 VALID_VARIANTS = {"color", "bw"}
 
@@ -80,11 +84,12 @@ class ExportPatternToPdf:
                 )
             )
 
+        cell_size_mm = compute_cell_size_mm(request.pattern.grid.width, request.pattern.grid.height)
         tiling = compute_tiles(
             grid_width=request.pattern.grid.width,
             grid_height=request.pattern.grid.height,
-            cols_per_page=COLS_PER_PAGE,
-            rows_per_page=ROWS_PER_PAGE,
+            cols_per_page=cols_per_page(cell_size_mm),
+            rows_per_page=rows_per_page(cell_size_mm),
         )
 
         pdf_bytes = self._exporter.render(
@@ -97,6 +102,7 @@ class ExportPatternToPdf:
             variant=request.variant,
             symbols=symbols,
             tiles=tiling.tiles,
+            cell_size_mm=cell_size_mm,
         )
 
         num_pages = 2 + tiling.total_pages

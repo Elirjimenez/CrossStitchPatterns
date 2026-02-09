@@ -1,6 +1,11 @@
 import pytest
 
-from app.domain.services.pattern_tiling import compute_tiles
+from app.domain.services.pattern_tiling import (
+    compute_cell_size_mm,
+    compute_tiles,
+    cols_per_page,
+    rows_per_page,
+)
 
 
 class TestComputeTilesSmallPattern:
@@ -130,6 +135,40 @@ class TestTilingResultMetadata:
         result = compute_tiles(60, 45, cols_per_page=32, rows_per_page=49)
         assert result.cols_per_page == 32
         assert result.rows_per_page == 49
+
+
+class TestComputeCellSizeMm:
+    def test_small_pattern_returns_max_cell(self):
+        """4×3 pattern fits in 1 page at 5mm → returns 5.0."""
+        assert compute_cell_size_mm(4, 3) == 5.0
+
+    def test_medium_pattern_returns_max_cell(self):
+        """60×45 fits in 2 pages at 5mm → still <= 4 pages → 5.0."""
+        assert compute_cell_size_mm(60, 45) == 5.0
+
+    def test_large_pattern_returns_min_cell(self):
+        """Very large pattern (300×300) → many pages → 3.0."""
+        assert compute_cell_size_mm(300, 300) == 3.0
+
+    def test_mid_range_pattern_returns_intermediate(self):
+        """Pattern that needs ~10 pages at 5mm → between 3.0 and 5.0."""
+        size = compute_cell_size_mm(150, 150)
+        assert 3.0 <= size <= 5.0
+
+    def test_cols_per_page_at_5mm(self):
+        """At 5mm cells, should get ~32 columns."""
+        cols = cols_per_page(5.0)
+        assert cols == 32
+
+    def test_rows_per_page_at_5mm(self):
+        """At 5mm cells, should get ~49 rows."""
+        rws = rows_per_page(5.0)
+        assert rws == 49
+
+    def test_smaller_cells_fit_more(self):
+        """3mm cells should fit more columns/rows than 5mm."""
+        assert cols_per_page(3.0) > cols_per_page(5.0)
+        assert rows_per_page(3.0) > rows_per_page(5.0)
 
 
 class TestComputeTilesInvalidInputs:

@@ -21,6 +21,7 @@ class FakePatternPdfExporter(PatternPdfExporter):
         variant="color",
         symbols=None,
         tiles=None,
+        cell_size_mm=5.0,
     ) -> bytes:
         return b"%PDF-FAKE"
 

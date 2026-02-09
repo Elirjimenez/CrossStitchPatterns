@@ -1,4 +1,4 @@
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 from fastapi import APIRouter, Depends, Form, UploadFile
 from fastapi.responses import Response
@@ -133,9 +133,9 @@ class ConvertResponseBody(BaseModel):
 @router.post("/convert", response_model=ConvertResponseBody)
 async def convert_image(
     file: UploadFile,
-    target_width: int = Form(gt=0),
-    target_height: int = Form(gt=0),
     num_colors: int = Form(gt=0),
+    target_width: Optional[int] = Form(default=None, gt=0),
+    target_height: Optional[int] = Form(default=None, gt=0),
     use_case: ConvertImageToPattern = Depends(get_convert_use_case),
 ) -> ConvertResponseBody:
     image_data = await file.read()
@@ -143,9 +143,9 @@ async def convert_image(
     result = use_case.execute(
         ConvertImageRequest(
             image_data=image_data,
+            num_colors=num_colors,
             target_width=target_width,
             target_height=target_height,
-            num_colors=num_colors,
         )
     )
 

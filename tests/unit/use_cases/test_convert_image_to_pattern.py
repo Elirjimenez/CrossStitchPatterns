@@ -13,6 +13,9 @@ from app.domain.data.dmc_colors import DMC_COLORS
 
 
 class FakeImageResizer(ImageResizer):
+    def get_image_size(self, image_bytes: bytes):
+        return (10, 10)
+
     def load_and_resize(self, image_bytes: bytes, width: int, height: int):
         # Return a deterministic pixel grid (all same color)
         return [[(128, 64, 32)] * width for _ in range(height)]
@@ -70,3 +73,17 @@ def test_convert_palette_colors_are_valid_dmc():
     dmc_rgb_set = {(c.r, c.g, c.b) for c in DMC_COLORS.values()}
     for color in result.pattern.palette.colors:
         assert color in dmc_rgb_set
+
+
+def test_convert_with_none_dimensions_uses_image_size():
+    """When target_width/target_height are None, use the image's native size."""
+    use_case = ConvertImageToPattern(image_resizer=FakeImageResizer())
+    request = ConvertImageRequest(
+        image_data=_make_test_image(10, 10),
+        num_colors=3,
+    )
+    result = use_case.execute(request)
+
+    # FakeImageResizer.get_image_size returns (10, 10)
+    assert result.pattern.grid.width == 10
+    assert result.pattern.grid.height == 10

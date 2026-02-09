@@ -170,18 +170,22 @@ def render_pattern_pdf(
     symbols: List[str] | None = None,
     tiles: List[PageTile] | None = None,
     variant: str = "color",
+    cell_size_mm: float = 5.0,
 ) -> bytes:
     from app.infrastructure.pdf_export.pattern_renderer import _draw_grid_page
 
     buf = BytesIO()
     c = Canvas(buf, pagesize=A4)
     _draw_overview_page(c, pattern, title, fabric_size, aida_count, margin_cm)
-    _draw_legend_page(c, legend_entries)
 
     if symbols and tiles:
         total_grid_pages = len(tiles)
         for i, tile in enumerate(tiles):
-            _draw_grid_page(c, pattern, symbols, tile, i + 1, total_grid_pages, variant)
+            _draw_grid_page(
+                c, pattern, symbols, tile, i + 1, total_grid_pages, variant, cell_size_mm
+            )
+
+    _draw_legend_page(c, legend_entries)
 
     c.save()
     return buf.getvalue()

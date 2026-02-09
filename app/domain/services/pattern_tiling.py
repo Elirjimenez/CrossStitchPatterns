@@ -4,6 +4,15 @@ import math
 from dataclasses import dataclass
 from typing import List, Optional
 
+# Page layout constants (A4 in points)
+_PAGE_W = 595.28
+_PAGE_H = 841.89
+_MARGIN = 56.69  # 2cm
+_LABEL_MARGIN_LEFT = 28
+_LABEL_MARGIN_TOP = 14
+_FOOTER_HEIGHT = 14
+_MM_TO_PT = 2.8346
+
 
 @dataclass(frozen=True)
 class PageTile:
@@ -22,6 +31,38 @@ class TilingResult:
     total_pages: int
     cols_per_page: int
     rows_per_page: int
+
+
+def cols_per_page(cell_mm: float) -> int:
+    """Compute how many columns fit on a page given a cell size in mm."""
+    cell_pt = cell_mm * _MM_TO_PT
+    available = _PAGE_W - 2 * _MARGIN - _LABEL_MARGIN_LEFT
+    return int(available / cell_pt)
+
+
+def rows_per_page(cell_mm: float) -> int:
+    """Compute how many rows fit on a page given a cell size in mm."""
+    cell_pt = cell_mm * _MM_TO_PT
+    available = _PAGE_H - 2 * _MARGIN - _LABEL_MARGIN_TOP - _FOOTER_HEIGHT
+    return int(available / cell_pt)
+
+
+def compute_cell_size_mm(grid_width: int, grid_height: int) -> float:
+    """Return cell size in mm: 5.0 for small patterns, down to 3.0 for large ones."""
+    MAX_CELL = 5.0
+    MIN_CELL = 3.0
+
+    cols_at_max = cols_per_page(MAX_CELL)
+    rows_at_max = rows_per_page(MAX_CELL)
+    pages = math.ceil(grid_width / cols_at_max) * math.ceil(grid_height / rows_at_max)
+
+    if pages <= 4:
+        return MAX_CELL
+    if pages >= 20:
+        return MIN_CELL
+    # Linear interpolation between 4 and 20 pages
+    t = (pages - 4) / (20 - 4)
+    return round(MAX_CELL - t * (MAX_CELL - MIN_CELL), 2)
 
 
 def compute_tiles(

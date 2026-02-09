@@ -27,6 +27,7 @@ class ReportLabPatternPdfExporter(PatternPdfExporter):
         variant: str = "color",
         symbols: Optional[List[str]] = None,
         tiles: Optional[List[PageTile]] = None,
+        cell_size_mm: float = 5.0,
     ) -> bytes:
         infra_legend_entries = [
             LegendEntry(
@@ -52,4 +53,5 @@ class ReportLabPatternPdfExporter(PatternPdfExporter):
             symbols=symbols,
             tiles=tiles,
             variant=variant,
+            cell_size_mm=cell_size_mm,
         )

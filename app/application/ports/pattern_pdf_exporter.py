@@ -32,4 +32,5 @@ class PatternPdfExporter(Protocol):
         variant: str = "color",
         symbols: Optional[List[str]] = None,
         tiles: Optional[List[PageTile]] = None,
+        cell_size_mm: float = 5.0,
     ) -> bytes: ...
