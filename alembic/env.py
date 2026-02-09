@@ -7,6 +7,8 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.infrastructure.persistence.database import Base
+import app.infrastructure.persistence.models.project_model  # noqa: F401
+import app.infrastructure.persistence.models.pattern_result_model  # noqa: F401
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
