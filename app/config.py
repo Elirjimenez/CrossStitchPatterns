@@ -4,7 +4,7 @@ from pydantic_settings import BaseSettings
 
 
 class Settings(BaseSettings):
-    database_url: str = "sqlite:///./dev.db"
+    database_url: str = "postgresql://user:pass@localhost:5432/crossstitch"
     max_pattern_size: int = 500
     default_aida_count: int = 14
     app_version: str = "0.1.0"
