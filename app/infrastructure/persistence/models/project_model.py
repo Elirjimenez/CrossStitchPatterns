@@ -1,5 +1,4 @@
-from sqlalchemy import String, DateTime, Text
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, String, DateTime, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -15,4 +14,4 @@ class ProjectModel(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     status: Mapped[str] = mapped_column(String(20), nullable=False, default="created")
     source_image_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
-    parameters: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    parameters: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)

@@ -13,7 +13,7 @@ from starlette.responses import JSONResponse
 from app.config import get_settings
 from app.domain.exceptions import DomainException
 from app.infrastructure.logging import setup_logging
-from app.web.api.routes import health, patterns
+from app.web.api.routes import health, patterns, projects
 
 # Application metadata
 APP_TITLE = "Cross-Stitch Pattern Generator"
@@ -74,6 +74,7 @@ def create_app() -> FastAPI:
     # Register routes
     app.include_router(health.router, tags=["health"])
     app.include_router(patterns.router, prefix="/api/patterns", tags=["patterns"])
+    app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
 
     return app
 
