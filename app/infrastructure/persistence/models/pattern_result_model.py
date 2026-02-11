@@ -1,5 +1,4 @@
-from sqlalchemy import String, DateTime, Integer, Text, ForeignKey
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy import JSON, String, DateTime, Integer, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -13,7 +12,7 @@ class PatternResultModel(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
     project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
-    palette: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    palette: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     grid_width: Mapped[int] = mapped_column(Integer, nullable=False)
     grid_height: Mapped[int] = mapped_column(Integer, nullable=False)
     stitch_count: Mapped[int] = mapped_column(Integer, nullable=False)
