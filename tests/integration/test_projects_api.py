@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from fastapi.testclient import TestClient
@@ -6,14 +8,15 @@ from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
 from app.infrastructure.persistence.database import Base
+from app.infrastructure.storage.local_file_storage import LocalFileStorage
 import app.infrastructure.persistence.models.project_model  # noqa: F401
 import app.infrastructure.persistence.models.pattern_result_model  # noqa: F401
 from app.main import create_app
-from app.web.api.dependencies import get_db_session
+from app.web.api.dependencies import get_db_session, get_file_storage
 
 
 @pytest.fixture
-def client():
+def client(tmp_path):
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -34,8 +37,12 @@ def client():
         finally:
             session.close()
 
+    storage_dir = tmp_path / "storage"
+    storage = LocalFileStorage(str(storage_dir))
+
     app = create_app()
     app.dependency_overrides[get_db_session] = _override_session
+    app.dependency_overrides[get_file_storage] = lambda: storage
     return TestClient(app)
 
 
@@ -165,6 +172,79 @@ class TestCreatePatternResult:
                 "grid_width": 10,
                 "grid_height": 10,
                 "stitch_count": 100,
+            },
+        )
+        assert response.status_code == 400
+
+
+# --- POST /api/projects/{id}/source-image ---
+
+
+class TestUploadSourceImage:
+    def test_upload_source_image(self, client):
+        create_resp = client.post("/api/projects", json={"name": "Test"})
+        project_id = create_resp.json()["id"]
+
+        response = client.post(
+            f"/api/projects/{project_id}/source-image",
+            files={"file": ("photo.png", b"\x89PNG fake", "image/png")},
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["source_image_ref"] is not None
+        assert data["source_image_ref"].endswith(".png")
+
+    def test_upload_source_image_project_not_found(self, client):
+        response = client.post(
+            "/api/projects/nonexistent/source-image",
+            files={"file": ("photo.png", b"\x89PNG fake", "image/png")},
+        )
+        assert response.status_code == 400
+
+    def test_upload_source_image_no_file(self, client):
+        create_resp = client.post("/api/projects", json={"name": "Test"})
+        project_id = create_resp.json()["id"]
+
+        response = client.post(f"/api/projects/{project_id}/source-image")
+        assert response.status_code == 422
+
+
+# --- POST /api/projects/{id}/patterns/with-pdf ---
+
+
+class TestCreatePatternResultWithPdf:
+    def test_create_pattern_with_pdf(self, client):
+        create_resp = client.post("/api/projects", json={"name": "Test"})
+        project_id = create_resp.json()["id"]
+
+        palette_json = json.dumps({"colors": [{"r": 255, "g": 0, "b": 0}]})
+        response = client.post(
+            f"/api/projects/{project_id}/patterns/with-pdf",
+            files={"file": ("pattern.pdf", b"%PDF-1.4 fake", "application/pdf")},
+            data={
+                "palette": palette_json,
+                "grid_width": "100",
+                "grid_height": "80",
+                "stitch_count": "8000",
+            },
+        )
+
+        assert response.status_code == 201
+        data = response.json()
+        assert data["project_id"] == project_id
+        assert data["pdf_ref"] is not None
+        assert data["grid_width"] == 100
+
+    def test_create_pattern_with_pdf_project_not_found(self, client):
+        response = client.post(
+            "/api/projects/nonexistent/patterns/with-pdf",
+            files={"file": ("pattern.pdf", b"%PDF-1.4 fake", "application/pdf")},
+            data={
+                "palette": "{}",
+                "grid_width": "10",
+                "grid_height": "10",
+                "stitch_count": "100",
             },
         )
         assert response.status_code == 400

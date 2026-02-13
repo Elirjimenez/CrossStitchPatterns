@@ -1,9 +1,12 @@
+import json
+import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.application.ports.file_storage import FileStorage
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
 from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
@@ -12,6 +15,7 @@ from app.application.use_cases.save_pattern_result import (
     SavePatternResult,
     SavePatternResultRequest,
 )
+from app.domain.exceptions import ProjectNotFoundError
 from app.domain.model.project import ProjectStatus
 from app.infrastructure.persistence.sqlalchemy_project_repository import (
     SqlAlchemyProjectRepository,
@@ -19,7 +23,7 @@ from app.infrastructure.persistence.sqlalchemy_project_repository import (
 from app.infrastructure.persistence.sqlalchemy_pattern_result_repository import (
     SqlAlchemyPatternResultRepository,
 )
-from app.web.api.dependencies import get_db_session
+from app.web.api.dependencies import get_db_session, get_file_storage
 
 router = APIRouter()
 
@@ -153,6 +157,67 @@ def create_pattern_result(
             grid_height=body.grid_height,
             stitch_count=body.stitch_count,
             pdf_ref=body.pdf_ref,
+        )
+    )
+    return _pattern_result_to_response(result)
+
+
+@router.post(
+    "/{project_id}/source-image",
+    response_model=ProjectResponse,
+    status_code=200,
+)
+def upload_source_image(
+    project_id: str,
+    file: UploadFile = File(...),
+    session: Session = Depends(get_db_session),
+    storage: FileStorage = Depends(get_file_storage),
+):
+    repo = SqlAlchemyProjectRepository(session)
+    project = repo.get(project_id)
+    if project is None:
+        raise ProjectNotFoundError(f"Project '{project_id}' not found")
+
+    data = file.file.read()
+    _, extension = os.path.splitext(file.filename or "file.bin")
+    ref = storage.save_source_image(project_id, data, extension)
+    repo.update_source_image_ref(project_id, ref)
+
+    updated = repo.get(project_id)
+    return _project_to_response(updated)
+
+
+@router.post(
+    "/{project_id}/patterns/with-pdf",
+    response_model=PatternResultResponse,
+    status_code=201,
+)
+def create_pattern_result_with_pdf(
+    project_id: str,
+    file: UploadFile = File(...),
+    palette: str = Form(default="{}"),
+    grid_width: int = Form(...),
+    grid_height: int = Form(...),
+    stitch_count: int = Form(...),
+    session: Session = Depends(get_db_session),
+    storage: FileStorage = Depends(get_file_storage),
+):
+    project_repo = SqlAlchemyProjectRepository(session)
+    pattern_repo = SqlAlchemyPatternResultRepository(session)
+
+    pdf_data = file.file.read()
+    pdf_ref = storage.save_pdf(project_id, pdf_data, "pattern.pdf")
+
+    parsed_palette = json.loads(palette)
+    use_case = SavePatternResult(project_repo=project_repo, pattern_result_repo=pattern_repo)
+    result = use_case.execute(
+        SavePatternResultRequest(
+            project_id=project_id,
+            palette=parsed_palette,
+            grid_width=grid_width,
+            grid_height=grid_height,
+            stitch_count=stitch_count,
+            pdf_ref=pdf_ref,
         )
     )
     return _pattern_result_to_response(result)

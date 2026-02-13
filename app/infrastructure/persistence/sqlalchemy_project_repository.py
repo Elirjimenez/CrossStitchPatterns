@@ -33,3 +33,10 @@ class SqlAlchemyProjectRepository(ProjectRepository):
             return
         model.status = status.value
         self._session.flush()
+
+    def update_source_image_ref(self, project_id: str, ref: str) -> None:
+        model = self._session.get(ProjectModel, project_id)
+        if model is None:
+            return
+        model.source_image_ref = ref
+        self._session.flush()
