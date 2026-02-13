@@ -7,6 +7,7 @@ dependencies = []
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]
+markers = ["postgres: tests that require a running PostgreSQL instance"]
 
 [tool.black]
 line-length = 100

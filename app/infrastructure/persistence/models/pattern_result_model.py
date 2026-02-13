@@ -10,7 +10,9 @@ class PatternResultModel(Base):
     __tablename__ = "pattern_results"
 
     id: Mapped[str] = mapped_column(String(36), primary_key=True)
-    project_id: Mapped[str] = mapped_column(String(36), ForeignKey("projects.id"), nullable=False)
+    project_id: Mapped[str] = mapped_column(
+        String(36), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     palette: Mapped[dict] = mapped_column(JSON, nullable=False, default=dict)
     grid_width: Mapped[int] = mapped_column(Integer, nullable=False)
