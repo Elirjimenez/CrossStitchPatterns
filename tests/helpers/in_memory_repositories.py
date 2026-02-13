@@ -33,6 +33,20 @@ class InMemoryProjectRepository(ProjectRepository):
         )
         self._store[project_id] = updated
 
+    def update_source_image_ref(self, project_id: str, ref: str) -> None:
+        existing = self._store.get(project_id)
+        if existing is None:
+            return
+        updated = Project(
+            id=existing.id,
+            name=existing.name,
+            created_at=existing.created_at,
+            status=existing.status,
+            source_image_ref=ref,
+            parameters=existing.parameters,
+        )
+        self._store[project_id] = updated
+
 
 class InMemoryPatternResultRepository(PatternResultRepository):
     def __init__(self) -> None:

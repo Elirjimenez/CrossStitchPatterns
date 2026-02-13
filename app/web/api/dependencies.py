@@ -2,8 +2,10 @@ from typing import Generator
 
 from sqlalchemy.orm import Session
 
+from app.application.ports.file_storage import FileStorage
 from app.config import get_settings
 from app.infrastructure.persistence.database import build_session_factory
+from app.infrastructure.storage.local_file_storage import LocalFileStorage
 
 _session_factory = None
 
@@ -27,3 +29,8 @@ def get_db_session() -> Generator[Session, None, None]:
         raise
     finally:
         session.close()
+
+
+def get_file_storage() -> FileStorage:
+    settings = get_settings()
+    return LocalFileStorage(settings.storage_dir)
