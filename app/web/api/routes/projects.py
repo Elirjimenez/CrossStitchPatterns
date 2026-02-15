@@ -6,6 +6,10 @@ from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel, Field
 
 from app.application.ports.file_storage import FileStorage
+from app.application.use_cases.create_complete_pattern import (
+    CreateCompletePattern,
+    CreateCompletePatternRequest,
+)
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
 from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
@@ -19,6 +23,7 @@ from app.domain.model.project import ProjectStatus
 from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
 from app.web.api.dependencies import (
+    get_create_complete_pattern_use_case,
     get_file_storage,
     get_pattern_result_repository,
     get_project_repository,
@@ -218,3 +223,56 @@ def create_pattern_result_with_pdf(
         )
     )
     return _pattern_result_to_response(result)
+
+
+# --- POST /api/projects/complete ---
+
+
+class CompletePatternResponse(BaseModel):
+    """Response for the complete pattern creation workflow."""
+
+    project: ProjectResponse
+    pattern_result: PatternResultResponse
+    pdf_url: str  # In a real app, this would be a download URL
+
+
+@router.post("/complete", response_model=CompletePatternResponse, status_code=201)
+async def create_complete_pattern(
+    name: str = Form(..., min_length=1),
+    file: UploadFile = File(...),
+    target_width: int = Form(..., gt=0),
+    target_height: int = Form(..., gt=0),
+    num_colors: int = Form(..., gt=0),
+    aida_count: int = Form(default=14, gt=0),
+    num_strands: int = Form(default=2, ge=1, le=6),
+    margin_cm: float = Form(default=5.0, ge=0),
+    use_case: CreateCompletePattern = Depends(get_create_complete_pattern_use_case),
+):
+    """
+    Complete end-to-end workflow: create project, upload image, generate pattern,
+    export PDF, save all results, and mark project as completed.
+
+    All operations are performed in a single transaction.
+    If any step fails, the entire operation is rolled back.
+    """
+    image_data = await file.read()
+
+    request = CreateCompletePatternRequest(
+        name=name,
+        image_data=image_data,
+        image_filename=file.filename or "image.bin",
+        target_width=target_width,
+        target_height=target_height,
+        num_colors=num_colors,
+        aida_count=aida_count,
+        num_strands=num_strands,
+        margin_cm=margin_cm,
+    )
+
+    result = use_case.execute(request)
+
+    return CompletePatternResponse(
+        project=_project_to_response(result.project),
+        pattern_result=_pattern_result_to_response(result.pattern_result),
+        pdf_url=f"/api/files/{result.pattern_result.pdf_ref}",
+    )
