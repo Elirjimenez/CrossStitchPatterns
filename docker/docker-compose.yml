@@ -9,6 +9,9 @@ services:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://user:pass@db:5432/crossstitch
+      - STORAGE_DIR=/app/storage
+    volumes:
+      - storage_data:/app/storage
     depends_on:
       db:
         condition: service_healthy
@@ -31,3 +34,4 @@ services:
 
 volumes:
   postgres_data:
+  storage_data:
