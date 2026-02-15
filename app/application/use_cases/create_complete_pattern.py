@@ -25,12 +25,14 @@ from app.domain.repositories.project_repository import ProjectRepository
 from app.domain.services.color_matching import select_palette
 from app.domain.services.fabric import compute_fabric_size_cm
 from app.domain.services.floss import compute_per_color_floss
-from app.domain.services.pattern_tiling import compute_tiles
+from app.domain.services.pattern_tiling import (
+    compute_cell_size_mm,
+    compute_tiles,
+    cols_per_page,
+    rows_per_page,
+)
 from app.domain.services.stitch_count import count_stitches_per_color
 from app.domain.services.symbol_map import assign_symbols
-
-COLS_PER_PAGE = 32
-ROWS_PER_PAGE = 49
 
 
 @dataclass(frozen=True)
@@ -184,11 +186,12 @@ class CreateCompletePattern:
                 )
             )
 
+        cell_size_mm = compute_cell_size_mm(pattern.grid.width, pattern.grid.height)
         tiling = compute_tiles(
             grid_width=pattern.grid.width,
             grid_height=pattern.grid.height,
-            cols_per_page=COLS_PER_PAGE,
-            rows_per_page=ROWS_PER_PAGE,
+            cols_per_page=cols_per_page(cell_size_mm),
+            rows_per_page=rows_per_page(cell_size_mm),
         )
 
         pdf_bytes = self._pdf_exporter.render(
@@ -201,6 +204,7 @@ class CreateCompletePattern:
             variant="color",
             symbols=symbols,
             tiles=tiling.tiles,
+            cell_size_mm=cell_size_mm,
         )
 
         # Step 6: Save PDF
