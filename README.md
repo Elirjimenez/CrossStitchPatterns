@@ -178,7 +178,7 @@ The Docker image can be deployed to any container platform (Heroku, GCP, AWS, Di
 
 ### Testing
 - **Framework**: pytest
-- **Coverage**: 288 tests (80%+ coverage)
+- **Coverage**: 311 total tests (288 core + 23 PostgreSQL integration) (80%+ coverage)
 - **Types**: Unit, Integration, Security, PostgreSQL tests
 
 ### DevOps
@@ -325,7 +325,7 @@ docker-compose -f docker/docker-compose.test.yml down
 
 ### Test Coverage
 
-- **Total Tests**: 288 (+ 23 PostgreSQL-specific tests)
+- **Total Tests**: 311 total tests (288 core + 23 PostgreSQL integration)
 - **Coverage**: 80%+
 - **Unit Tests**: 239 tests (including security tests)
 - **Integration Tests**: 49 tests (SQLite)
@@ -439,7 +439,7 @@ See [CLAUDE.md](./CLAUDE.md) for full AI collaboration guidelines.
 
 ## 📊 Project Statistics
 
-- **Lines of Code**: ~7,000 (3,100 app + 3,800 tests)
+- **Lines of Code**: ~7,000 LOC (44% application code, 56% tests)
 - **Tests**: 288 (311 total with PostgreSQL, 80%+ coverage)
 - **API Endpoints**: 13
 - **Database Tables**: 2 (projects, pattern_results)
@@ -504,8 +504,11 @@ GitHub: [@Elirjimenez](https://github.com/Elirjimenez)
 
 - **Issues**: [GitHub Issues](https://github.com/Elirjimenez/CrossStitchPatterns/issues)
 - **Documentation**: [docs/](./docs)
-- **API Docs**: http://localhost:8000/api/docs
+- **Local API Docs**: http://localhost:8000/api/docs
+- **Production API Docs**: https://crossstitchpatterns-production.up.railway.app/api/docs
 
 ---
 
 **Made with ❤️ and AI assistance for the Master in AI Development TFM**
+This project demonstrates how AI-assisted development can be integrated responsibly within a rigorous software 
+engineering process.
