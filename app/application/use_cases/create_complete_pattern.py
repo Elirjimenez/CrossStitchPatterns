@@ -53,6 +53,7 @@ class CreateCompletePatternRequest:
     aida_count: int = 14
     num_strands: int = 2
     margin_cm: float = 5.0
+    variant: str = "color"  # "color" or "bw"
 
 
 @dataclass(frozen=True)
@@ -203,7 +204,7 @@ class CreateCompletePattern:
             aida_count=request.aida_count,
             margin_cm=request.margin_cm,
             legend_entries=legend_entries,
-            variant="color",
+            variant=request.variant,
             symbols=symbols,
             tiles=tiling.tiles,
             cell_size_mm=cell_size_mm,
