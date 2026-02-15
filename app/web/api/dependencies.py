@@ -53,7 +53,13 @@ def get_db_session() -> Generator[Session, None, None]:
 
 def get_file_storage() -> FileStorage:
     settings = get_settings()
-    return LocalFileStorage(settings.storage_dir)
+    # Parse allowed extensions from comma-separated string
+    allowed_extensions = {ext.strip() for ext in settings.allowed_file_extensions.split(",")}
+    return LocalFileStorage(
+        base_dir=settings.storage_dir,
+        max_filename_length=settings.max_filename_length,
+        allowed_extensions=allowed_extensions,
+    )
 
 
 def get_project_repository(

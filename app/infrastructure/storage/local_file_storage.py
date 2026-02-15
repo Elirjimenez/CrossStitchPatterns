@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 from typing import Optional
 
@@ -8,12 +9,71 @@ from typing import Optional
 class LocalFileStorage:
     """Local filesystem storage with path traversal protection."""
 
-    ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".pdf"}
+    # Default constants (can be overridden via constructor)
+    DEFAULT_MAX_FILENAME_LENGTH = 255
+    DEFAULT_ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".pdf"}
 
-    def __init__(self, base_dir: str) -> None:
+    def __init__(
+        self,
+        base_dir: str,
+        max_filename_length: int = DEFAULT_MAX_FILENAME_LENGTH,
+        allowed_extensions: Optional[set[str]] = None,
+    ) -> None:
         self._base_dir = Path(base_dir).resolve()
+        self._max_filename_length = max_filename_length
+        self._allowed_extensions = (
+            allowed_extensions
+            if allowed_extensions is not None
+            else self.DEFAULT_ALLOWED_EXTENSIONS
+        )
         # Ensure base directory exists
         self._base_dir.mkdir(parents=True, exist_ok=True)
+
+    def _sanitize_filename(self, filename: str) -> str:
+        """Sanitize filename to prevent security issues and filesystem errors.
+
+        - Removes path separators (/, \\)
+        - Removes null bytes
+        - Replaces dangerous characters with underscores
+        - Limits length to prevent filesystem issues
+        - Preserves file extension
+
+        Args:
+            filename: Original filename
+
+        Returns:
+            Sanitized filename safe for filesystem use
+        """
+        max_length = self._max_filename_length
+        # Remove path separators and null bytes
+        filename = filename.replace("/", "_").replace("\\", "_").replace("\0", "")
+
+        # Split into name and extension
+        name_parts = filename.rsplit(".", 1)
+        if len(name_parts) == 2:
+            name, ext = name_parts
+            ext = f".{ext}"
+        else:
+            name = filename
+            ext = ""
+
+        # Replace dangerous characters with underscores
+        # Keep only: alphanumeric, dash, underscore, dot
+        name = re.sub(r"[^\w\-.]", "_", name)
+
+        # Remove leading/trailing dots and spaces
+        name = name.strip(". ")
+
+        # Prevent empty names
+        if not name:
+            name = "file"
+
+        # Limit length (reserve space for extension)
+        max_name_length = max_length - len(ext)
+        if len(name) > max_name_length:
+            name = name[:max_name_length]
+
+        return f"{name}{ext}"
 
     def save_source_image(self, project_id: str, data: bytes, extension: str) -> str:
         if not extension.startswith("."):
@@ -26,7 +86,8 @@ class LocalFileStorage:
 
     def save_pdf(self, project_id: str, data: bytes, filename: str) -> str:
         project_dir = self._ensure_project_dir(project_id)
-        file_path = project_dir / filename
+        safe_filename = self._sanitize_filename(filename)
+        file_path = project_dir / safe_filename
         file_path.write_bytes(data)
         return str(file_path.relative_to(self._base_dir))
 
@@ -61,8 +122,8 @@ class LocalFileStorage:
             if not absolute_path.exists() or not absolute_path.is_file():
                 return None
 
-            # Optional: Validate file extension
-            if absolute_path.suffix.lower() not in self.ALLOWED_EXTENSIONS:
+            # Validate file extension
+            if absolute_path.suffix.lower() not in self._allowed_extensions:
                 return None
 
             return absolute_path
@@ -71,7 +132,22 @@ class LocalFileStorage:
             # Invalid path, permission errors, etc.
             return None
 
+    @staticmethod
+    def _sanitize_project_id(project_id: str) -> str:
+        """Sanitize project ID for use as directory name.
+
+        Project IDs are typically UUIDs or alphanumeric strings.
+        This ensures they're safe for filesystem use.
+        """
+        # Keep only alphanumeric, dash, underscore
+        sanitized = re.sub(r"[^\w\-]", "_", project_id)
+        # Prevent empty IDs
+        if not sanitized:
+            raise ValueError("Invalid project_id: cannot be empty after sanitization")
+        return sanitized
+
     def _ensure_project_dir(self, project_id: str) -> Path:
-        project_dir = self._base_dir / "projects" / project_id
+        safe_project_id = self._sanitize_project_id(project_id)
+        project_dir = self._base_dir / "projects" / safe_project_id
         project_dir.mkdir(parents=True, exist_ok=True)
         return project_dir
