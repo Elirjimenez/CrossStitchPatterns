@@ -6,7 +6,7 @@ from typing import List
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import mm
 from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
+from reportlab.pdfbase.ttfonts import TTFont, TTFError
 from reportlab.pdfgen.canvas import Canvas
 
 from app.domain.model.pattern import Pattern
@@ -38,7 +38,7 @@ def _register_symbol_font() -> str:
     try:
         pdfmetrics.registerFont(TTFont("DejaVuSans", "DejaVuSans.ttf"))
         return "DejaVuSans"
-    except Exception:
+    except (TTFError, IOError, OSError, KeyError):
         return "Helvetica"
 
 

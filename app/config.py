@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     max_pattern_size: int = 500
     default_aida_count: int = 14
     app_version: str = "0.1.0"
+    allowed_origins: str = "http://localhost:3000,http://localhost:8000"
 
     model_config = {"env_file": ".env"}
 

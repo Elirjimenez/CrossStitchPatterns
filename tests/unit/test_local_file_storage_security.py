@@ -1,4 +1,5 @@
 """Security tests for LocalFileStorage path traversal protection."""
+
 import tempfile
 from pathlib import Path
 
@@ -50,7 +51,9 @@ class TestPathTraversalProtection:
 
     def test_resolve_windows_path_traversal_returns_none(self, temp_storage):
         """Windows-style path traversal should return None."""
-        result = temp_storage.resolve_file_for_download("projects\\..\\..\\..\\Windows\\System32\\config\\SAM")
+        result = temp_storage.resolve_file_for_download(
+            "projects\\..\\..\\..\\Windows\\System32\\config\\SAM"
+        )
         assert result is None
 
     def test_resolve_mixed_separators_traversal_returns_none(self, temp_storage):

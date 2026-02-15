@@ -211,7 +211,11 @@ def create_pattern_result_with_pdf(
     pdf_data = file.file.read()
     pdf_ref = storage.save_pdf(project_id, pdf_data, "pattern.pdf")
 
-    parsed_palette = json.loads(palette)
+    try:
+        parsed_palette = json.loads(palette)
+    except json.JSONDecodeError as e:
+        raise HTTPException(status_code=400, detail=f"Invalid JSON in palette field: {e}")
+
     use_case = SavePatternResult(project_repo=project_repo, pattern_result_repo=pattern_repo)
     result = use_case.execute(
         SavePatternResultRequest(

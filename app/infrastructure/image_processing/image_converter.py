@@ -9,7 +9,7 @@ from __future__ import annotations
 import io
 from typing import List
 
-from PIL import Image
+from PIL import Image, UnidentifiedImageError
 
 from app.domain.model.pattern import RGB
 
@@ -33,8 +33,8 @@ def load_and_resize(image_bytes: bytes, width: int, height: int) -> List[List[RG
 
     try:
         img = Image.open(io.BytesIO(image_bytes))
-    except Exception:
-        raise ValueError("Invalid image data")
+    except (UnidentifiedImageError, IOError, OSError) as e:
+        raise ValueError(f"Invalid image data: {e}")
 
     img = img.convert("RGB")
     img = img.resize((width, height), Image.Resampling.LANCZOS)

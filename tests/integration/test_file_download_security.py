@@ -1,4 +1,5 @@
 """Integration tests for file download endpoint security."""
+
 import tempfile
 from pathlib import Path
 
@@ -70,7 +71,9 @@ class TestFileDownloadSecurity:
 
     def test_download_windows_traversal_returns_404(self, client, temp_storage_dir):
         """Windows-style path traversal should return 404."""
-        response = client.get("/api/projects/files/projects\\..\\..\\..\\Windows\\System32\\config\\SAM")
+        response = client.get(
+            "/api/projects/files/projects\\..\\..\\..\\Windows\\System32\\config\\SAM"
+        )
         assert response.status_code == 404
 
     def test_download_invalid_extension_returns_404(self, client, temp_storage_dir):

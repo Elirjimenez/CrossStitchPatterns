@@ -60,10 +60,16 @@ def create_app() -> FastAPI:
     )
 
     # Configure CORS
+    # Parse allowed origins from settings (comma-separated string)
+    origins = [origin.strip() for origin in settings.allowed_origins.split(",")]
+
+    # Security: Only allow credentials with specific origins, not wildcards
+    use_credentials = "*" not in origins
+
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=["*"],  # Configure appropriately for production
-        allow_credentials=True,
+        allow_origins=origins,
+        allow_credentials=use_credentials,
         allow_methods=["*"],
         allow_headers=["*"],
     )
