@@ -4,9 +4,14 @@ from fastapi import Depends
 from sqlalchemy.orm import Session
 
 from app.application.ports.file_storage import FileStorage
+from app.application.ports.image_resizer import ImageResizer
+from app.application.ports.pattern_pdf_exporter import PatternPdfExporter
+from app.application.use_cases.create_complete_pattern import CreateCompletePattern
 from app.config import get_settings
 from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
+from app.infrastructure.image_processing.pillow_image_resizer import PillowImageResizer
+from app.infrastructure.pdf_export.pattern_pdf_exporter import ReportLabPatternPdfExporter
 from app.infrastructure.persistence.database import build_session_factory
 from app.infrastructure.persistence.sqlalchemy_pattern_result_repository import (
     SqlAlchemyPatternResultRepository,
@@ -57,3 +62,30 @@ def get_pattern_result_repository(
 ) -> PatternResultRepository:
     """Dependency for PatternResultRepository."""
     return SqlAlchemyPatternResultRepository(session)
+
+
+def get_image_resizer() -> ImageResizer:
+    """Dependency for ImageResizer."""
+    return PillowImageResizer()
+
+
+def get_pdf_exporter() -> PatternPdfExporter:
+    """Dependency for PatternPdfExporter."""
+    return ReportLabPatternPdfExporter()
+
+
+def get_create_complete_pattern_use_case(
+    project_repo: ProjectRepository = Depends(get_project_repository),
+    pattern_result_repo: PatternResultRepository = Depends(get_pattern_result_repository),
+    file_storage: FileStorage = Depends(get_file_storage),
+    image_resizer: ImageResizer = Depends(get_image_resizer),
+    pdf_exporter: PatternPdfExporter = Depends(get_pdf_exporter),
+) -> CreateCompletePattern:
+    """Dependency for CreateCompletePattern orchestrating use case."""
+    return CreateCompletePattern(
+        project_repo=project_repo,
+        pattern_result_repo=pattern_result_repo,
+        file_storage=file_storage,
+        image_resizer=image_resizer,
+        pdf_exporter=pdf_exporter,
+    )

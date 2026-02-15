@@ -72,7 +72,6 @@ def test_all_symbols_are_unique():
     assert len(SYMBOLS) == len(set(SYMBOLS))
 
 
-
 def test_contrast_color_black_returns_white():
     assert contrast_color(0, 0, 0) == (255, 255, 255)
 
