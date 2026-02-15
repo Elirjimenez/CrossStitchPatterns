@@ -9,7 +9,8 @@ Convert images into printable cross-stitch patterns with automatic fabric calcul
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg)](https://fastapi.tiangolo.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/tests-278%20passing-success.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-287%20passing-success.svg)](./tests)
+[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://crossstitchpatterns-production.up.railway.app/api/docs)
 
 ---
 
@@ -84,7 +85,45 @@ Once running, test the complete workflow:
 
 ---
 
+## 🌐 Live Demo
+
+The application is deployed and accessible at:
+
+- **API Documentation**: https://crossstitchpatterns-production.up.railway.app/api/docs
+- **Health Check**: https://crossstitchpatterns-production.up.railway.app/health
+
+Try it out! Upload an image and generate your cross-stitch pattern.
+
+---
+
 ## 📦 Deployment
+
+### Deploy to Railway (Current Production)
+
+Railway provides simple deployment with automatic PostgreSQL provisioning:
+
+```bash
+# Install Railway CLI
+npm i -g @railway/cli
+
+# Login
+railway login
+
+# Link to project or create new
+railway link  # or: railway init
+
+# Deploy
+railway up
+```
+
+**Production Environment Variables:**
+```env
+DATABASE_URL=<provided by Railway PostgreSQL>
+STORAGE_DIR=/app/storage
+MAX_PATTERN_SIZE=500
+```
+
+**Live Instance**: https://crossstitchpatterns-production.up.railway.app
 
 ### Deploy to Heroku
 
