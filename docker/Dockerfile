@@ -61,7 +61,7 @@ COPY alembic.ini .
 RUN mkdir -p /app/storage && chown -R appuser:appuser /app/storage
 
 # Switch to non-root user
-USER appuser
+# USER appuser
 
 # Expose port
 EXPOSE 8000
