@@ -100,15 +100,16 @@ Try it out! Upload an image and generate your cross-stitch pattern.
 
 ## 📦 Deployment
 
-### Deploy to Railway (Current Production)
+### Railway (Production)
 
-Railway provides simple deployment with automatic PostgreSQL provisioning:
+The application is currently deployed on Railway with automatic PostgreSQL provisioning.
 
+**Quick Deploy:**
 ```bash
 # Install Railway CLI
 npm i -g @railway/cli
 
-# Login
+# Login to Railway
 railway login
 
 # Link to project or create new
@@ -118,72 +119,42 @@ railway link  # or: railway init
 railway up
 ```
 
-**Production Environment Variables:**
+**Required Environment Variables:**
 ```env
-DATABASE_URL=<provided by Railway PostgreSQL>
+DATABASE_URL=<automatically provided by Railway PostgreSQL>
 STORAGE_DIR=/app/storage
 MAX_PATTERN_SIZE=500
 ```
 
 **Live Instance**: https://crossstitchpatterns-production.up.railway.app
 
-### Deploy to Heroku
+### Docker Deployment (Generic)
 
+Deploy to any platform that supports Docker:
+
+**Build and Run:**
 ```bash
-# Login to Heroku
-heroku login
-
-# Create app
-heroku create your-app-name
-
-# Add PostgreSQL
-heroku addons:create heroku-postgresql:mini
-
-# Deploy
-heroku container:push web
-heroku container:release web
-
-# Open app
-heroku open /api/docs
-```
-
-### Deploy to Google Cloud Run
-
-```bash
-# Build and push to Container Registry
-gcloud builds submit --tag gcr.io/PROJECT-ID/crossstitch-api
-
-# Deploy
-gcloud run deploy crossstitch-api \
-  --image gcr.io/PROJECT-ID/crossstitch-api \
-  --platform managed \
-  --region us-central1 \
-  --allow-unauthenticated
-```
-
-### Deploy to AWS ECS/Fargate
-
-```bash
-# Build and push to ECR
-aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ACCOUNT.dkr.ecr.us-east-1.amazonaws.com
-
+# Build the Docker image
 docker build -f docker/Dockerfile -t crossstitch-api .
-docker tag crossstitch-api:latest ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/crossstitch-api:latest
-docker push ACCOUNT.dkr.ecr.us-east-1.amazonaws.com/crossstitch-api:latest
 
-# Deploy using ECS task definition
-aws ecs update-service --cluster crossstitch --service api --force-new-deployment
+# Run with docker-compose
+docker-compose -f docker/docker-compose.yml up -d
+
+# Or run standalone (requires PostgreSQL)
+docker run -d \
+  -p 8000:8000 \
+  -e DATABASE_URL=postgresql://user:pass@db:5432/crossstitch \
+  -e STORAGE_DIR=/app/storage \
+  -v $(pwd)/storage:/app/storage \
+  crossstitch-api
 ```
 
-### Deploy to DigitalOcean App Platform
+**Requirements:**
+- PostgreSQL 15+ database
+- Persistent storage volume for files
+- Port 8000 exposed
 
-1. Connect your GitHub repository
-2. Configure build: `docker build -f docker/Dockerfile .`
-3. Add PostgreSQL database
-4. Set environment variables
-5. Deploy!
-
-📖 **Full deployment guide**: [docs/deployment.md](./docs/deployment.md)
+The Docker image can be deployed to any container platform (Heroku, GCP, AWS, DigitalOcean, etc.) that supports PostgreSQL and persistent storage.
 
 ---
 
