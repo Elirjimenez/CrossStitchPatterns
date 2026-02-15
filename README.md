@@ -5,11 +5,11 @@
 
 Convert images into printable cross-stitch patterns with automatic fabric calculations, DMC thread matching, and PDF export.
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg)](https://fastapi.tiangolo.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/tests-288%20passing-success.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-287%20passing-success.svg)](./tests)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://crossstitchpatterns-production.up.railway.app/api/docs)
 
 ---
@@ -124,6 +124,15 @@ railway up
 DATABASE_URL=<automatically provided by Railway PostgreSQL>
 STORAGE_DIR=/app/storage
 MAX_PATTERN_SIZE=500
+ALLOWED_ORIGINS=*
+```
+
+**Optional Environment Variables:**
+```env
+MAX_FILENAME_LENGTH=255
+ALLOWED_FILE_EXTENSIONS=.png,.jpg,.jpeg,.pdf
+DEFAULT_AIDA_COUNT=14
+APP_VERSION=0.1.0
 ```
 
 **Live Instance**: https://crossstitchpatterns-production.up.railway.app
@@ -178,7 +187,7 @@ The Docker image can be deployed to any container platform (Heroku, GCP, AWS, Di
 
 ### Testing
 - **Framework**: pytest
-- **Coverage**: 311 total tests (288 core + 23 PostgreSQL integration) (80%+ coverage)
+- **Coverage**: 311 total tests (287 core + 24 PostgreSQL integration) (80%+ coverage)
 - **Types**: Unit, Integration, Security, PostgreSQL tests
 
 ### DevOps
@@ -325,11 +334,11 @@ docker-compose -f docker/docker-compose.test.yml down
 
 ### Test Coverage
 
-- **Total Tests**: 311 total tests (288 core + 23 PostgreSQL integration)
+- **Total Tests**: 311 total tests (287 core + 24 PostgreSQL integration)
 - **Coverage**: 80%+
 - **Unit Tests**: 239 tests (including security tests)
 - **Integration Tests**: 49 tests (SQLite)
-- **PostgreSQL Tests**: 23 integration tests
+- **PostgreSQL Tests**: 24 integration tests
 
 ---
 
@@ -348,7 +357,7 @@ python -m venv .venv
 source .venv/bin/activate  # Unix/Mac
 
 # Install dependencies
-pip install -r requirements.txt
+pip install -r requirements.txt -r requirements-dev.txt
 
 # Set up environment variables
 cp .env.example .env
@@ -400,6 +409,9 @@ pytest-watch
 | `STORAGE_DIR` | Directory for file storage | `storage` | Yes |
 | `MAX_PATTERN_SIZE` | Maximum pattern dimension | `500` | No |
 | `DEFAULT_AIDA_COUNT` | Default fabric count | `14` | No |
+| `ALLOWED_ORIGINS` | CORS allowed origins (comma-separated) | `http://localhost:3000,http://localhost:8000` | No |
+| `MAX_FILENAME_LENGTH` | Maximum filename length | `255` | No |
+| `ALLOWED_FILE_EXTENSIONS` | Allowed file extensions (comma-separated) | `.png,.jpg,.jpeg,.pdf` | No |
 | `APP_VERSION` | Application version | `0.1.0` | No |
 
 **Example `.env` file**:
@@ -407,6 +419,9 @@ pytest-watch
 DATABASE_URL=postgresql://user:pass@localhost:5432/crossstitch
 STORAGE_DIR=storage
 MAX_PATTERN_SIZE=500
+ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
+MAX_FILENAME_LENGTH=255
+ALLOWED_FILE_EXTENSIONS=.png,.jpg,.jpeg,.pdf
 ```
 
 ---
@@ -440,7 +455,7 @@ See [CLAUDE.md](./CLAUDE.md) for full AI collaboration guidelines.
 ## 📊 Project Statistics
 
 - **Lines of Code**: ~7,000 LOC (44% application code, 56% tests)
-- **Tests**: 288 (311 total with PostgreSQL, 80%+ coverage)
+- **Tests**: 287 passing (311 total, 80%+ coverage)
 - **API Endpoints**: 13
 - **Database Tables**: 2 (projects, pattern_results)
 - **DMC Colors**: 489 embroidery thread colors
