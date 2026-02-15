@@ -1,3 +1,4 @@
+import os
 import pytest
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker
@@ -10,7 +11,10 @@ from app.infrastructure.persistence.sqlalchemy_pattern_result_repository import 
     SqlAlchemyPatternResultRepository,
 )
 
-POSTGRES_URL = "postgresql://user:pass@localhost:5432/crossstitch"
+# Use DATABASE_URL_TEST environment variable if set, otherwise default to test DB on port 5433
+POSTGRES_URL = os.getenv(
+    "DATABASE_URL_TEST", "postgresql://user:pass@localhost:5433/crossstitch_test"
+)
 
 
 def _postgres_is_available() -> bool:
