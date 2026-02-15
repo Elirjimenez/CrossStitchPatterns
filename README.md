@@ -9,7 +9,7 @@ Convert images into printable cross-stitch patterns with automatic fabric calcul
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg)](https://fastapi.tiangolo.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/tests-287%20passing-success.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-288%20passing-success.svg)](./tests)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://crossstitchpatterns-production.up.railway.app/api/docs)
 
 ---
@@ -178,8 +178,8 @@ The Docker image can be deployed to any container platform (Heroku, GCP, AWS, Di
 
 ### Testing
 - **Framework**: pytest
-- **Coverage**: 278 tests (80%+ coverage)
-- **Types**: Unit, Integration, PostgreSQL smoke tests
+- **Coverage**: 288 tests (80%+ coverage)
+- **Types**: Unit, Integration, Security, PostgreSQL tests
 
 ### DevOps
 - **Container**: Docker (multi-stage build)
@@ -292,11 +292,11 @@ docker-compose -f docker/docker-compose.test.yml down
 
 ### Test Coverage
 
-- **Total Tests**: 278
+- **Total Tests**: 288 (+ 23 PostgreSQL-specific tests)
 - **Coverage**: 80%+
-- **Unit Tests**: 186 tests
-- **Integration Tests**: 50 tests (SQLite + PostgreSQL)
-- **Smoke Tests**: 14 PostgreSQL-specific tests
+- **Unit Tests**: 239 tests (including security tests)
+- **Integration Tests**: 49 tests (SQLite)
+- **PostgreSQL Tests**: 23 integration tests
 
 ---
 
@@ -407,7 +407,7 @@ See [CLAUDE.md](./CLAUDE.md) for full AI collaboration guidelines.
 ## 📊 Project Statistics
 
 - **Lines of Code**: ~15,000
-- **Tests**: 278 (80%+ coverage)
+- **Tests**: 288 (311 total with PostgreSQL, 80%+ coverage)
 - **API Endpoints**: 12
 - **Database Tables**: 2 (projects, pattern_results)
 - **DMC Colors**: 400+ supported
