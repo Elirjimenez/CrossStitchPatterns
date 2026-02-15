@@ -406,12 +406,12 @@ See [CLAUDE.md](./CLAUDE.md) for full AI collaboration guidelines.
 
 ## 📊 Project Statistics
 
-- **Lines of Code**: ~15,000
+- **Lines of Code**: ~7,000 (3,100 app + 3,800 tests)
 - **Tests**: 288 (311 total with PostgreSQL, 80%+ coverage)
-- **API Endpoints**: 12
+- **API Endpoints**: 13
 - **Database Tables**: 2 (projects, pattern_results)
-- **DMC Colors**: 400+ supported
-- **Docker Image Size**: 400MB (multi-stage build)
+- **DMC Colors**: 489 embroidery thread colors
+- **Docker Image Size**: 460MB (multi-stage build)
 
 ---
 
