@@ -2,7 +2,8 @@ import json
 import os
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, Depends, File, Form, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, UploadFile
+from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
 from app.application.ports.file_storage import FileStorage
@@ -277,5 +278,44 @@ async def create_complete_pattern(
     return CompletePatternResponse(
         project=_project_to_response(result.project),
         pattern_result=_pattern_result_to_response(result.pattern_result),
-        pdf_url=f"/api/files/{result.pattern_result.pdf_ref}",
+        pdf_url=f"/api/projects/files/{result.pattern_result.pdf_ref}",
+    )
+
+
+# --- GET /api/projects/files/{file_path:path} ---
+
+
+@router.get("/files/{file_path:path}")
+def download_file(
+    file_path: str,
+    storage: FileStorage = Depends(get_file_storage),
+):
+    """
+    Download a file from project storage (source images, PDFs, etc.).
+
+    The file_path should be the relative path returned from other endpoints,
+    e.g., "projects/{project_id}/pattern.pdf"
+    """
+    if not storage.file_exists(file_path):
+        raise HTTPException(status_code=404, detail="File not found")
+
+    absolute_path = storage.get_file_path(file_path)
+
+    # Determine media type based on extension
+    extension = file_path.lower().split(".")[-1]
+    media_type_map = {
+        "pdf": "application/pdf",
+        "png": "image/png",
+        "jpg": "image/jpeg",
+        "jpeg": "image/jpeg",
+    }
+    media_type = media_type_map.get(extension, "application/octet-stream")
+
+    # Get filename for download
+    filename = file_path.split("/")[-1]
+
+    return FileResponse(
+        path=str(absolute_path),
+        media_type=media_type,
+        filename=filename,
     )
