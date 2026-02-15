@@ -284,6 +284,14 @@ app/
 
 ---
 
+## ⚠️ Known Limitations
+
+- **Free tier hosting** may enter sleep mode after inactivity
+- **File storage** is limited by Railway volume size
+- **Pattern generation performance** depends on image size
+
+---
+
 ## 🧪 Testing
 
 ### Run All Tests
