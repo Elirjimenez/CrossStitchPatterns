@@ -98,8 +98,8 @@ class CreateCompletePattern:
         """Execute the complete pattern creation workflow."""
 
         # Determine target dimensions (use image size if not specified)
-        target_width = target_width
-        target_height = target_height
+        target_width = request.target_width
+        target_height = request.target_height
 
         if target_width is None or target_height is None:
             # Load image to get actual dimensions
