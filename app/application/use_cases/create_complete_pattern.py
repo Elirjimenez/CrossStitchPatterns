@@ -23,6 +23,7 @@ from app.domain.model.project import PatternResult, Project, ProjectStatus
 from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
 from app.domain.services.color_matching import select_palette
+from app.domain.services.confetti import reduce_confetti
 from app.domain.services.fabric import compute_fabric_size_cm
 from app.domain.services.floss import compute_per_color_floss
 from app.domain.services.pattern_tiling import (
@@ -147,6 +148,7 @@ class CreateCompletePattern:
             request.image_data, target_width, target_height
         )
         palette, index_grid, dmc_colors = select_palette(pixels, request.num_colors)
+        index_grid = reduce_confetti(index_grid)
 
         from app.domain.model.pattern import PatternGrid
 

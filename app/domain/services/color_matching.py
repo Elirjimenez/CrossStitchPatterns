@@ -119,8 +119,9 @@ def select_palette(
             frequency[dmc.number] += 1
         dmc_grid.append(dmc_row)
 
-    # Pick top N most frequent DMC colors
-    top_numbers = [number for number, _ in frequency.most_common(num_colors)]
+    # Pick top N most frequent DMC colors (up to num_colors, but no more than actual unique colors)
+    actual_colors = min(num_colors, len(frequency))
+    top_numbers = [number for number, _ in frequency.most_common(actual_colors)]
     selected = {n: DMC_COLORS[n] for n in top_numbers}
     dmc_list = [selected[n] for n in top_numbers]
 
