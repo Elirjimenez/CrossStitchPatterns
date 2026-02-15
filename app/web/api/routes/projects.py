@@ -297,11 +297,14 @@ def download_file(
 
     The file_path should be the relative path returned from other endpoints,
     e.g., "projects/{project_id}/pattern.pdf"
-    """
-    if not storage.file_exists(file_path):
-        raise HTTPException(status_code=404, detail="File not found")
 
-    absolute_path = storage.get_file_path(file_path)
+    Security: Path traversal attempts will return 404.
+    """
+    # Use secure resolution method with path traversal protection
+    absolute_path = storage.resolve_file_for_download(file_path)
+
+    if absolute_path is None:
+        raise HTTPException(status_code=404, detail="File not found")
 
     # Determine media type based on extension
     extension = file_path.lower().split(".")[-1]

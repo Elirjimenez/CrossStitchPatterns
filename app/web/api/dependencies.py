@@ -6,7 +6,12 @@ from sqlalchemy.orm import Session
 from app.application.ports.file_storage import FileStorage
 from app.application.ports.image_resizer import ImageResizer
 from app.application.ports.pattern_pdf_exporter import PatternPdfExporter
+from app.application.use_cases.calculate_fabric_requirements import (
+    CalculateFabricRequirements,
+)
+from app.application.use_cases.convert_image_to_pattern import ConvertImageToPattern
 from app.application.use_cases.create_complete_pattern import CreateCompletePattern
+from app.application.use_cases.export_pattern_to_pdf import ExportPatternToPdf
 from app.config import get_settings
 from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
@@ -72,6 +77,25 @@ def get_image_resizer() -> ImageResizer:
 def get_pdf_exporter() -> PatternPdfExporter:
     """Dependency for PatternPdfExporter."""
     return ReportLabPatternPdfExporter()
+
+
+def get_calculate_fabric_use_case() -> CalculateFabricRequirements:
+    """Dependency for CalculateFabricRequirements use case."""
+    return CalculateFabricRequirements()
+
+
+def get_convert_image_use_case(
+    image_resizer: ImageResizer = Depends(get_image_resizer),
+) -> ConvertImageToPattern:
+    """Dependency for ConvertImageToPattern use case."""
+    return ConvertImageToPattern(image_resizer=image_resizer)
+
+
+def get_export_pdf_use_case(
+    pdf_exporter: PatternPdfExporter = Depends(get_pdf_exporter),
+) -> ExportPatternToPdf:
+    """Dependency for ExportPatternToPdf use case."""
+    return ExportPatternToPdf(exporter=pdf_exporter)
 
 
 def get_create_complete_pattern_use_case(

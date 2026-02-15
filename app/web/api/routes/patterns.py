@@ -18,30 +18,13 @@ from app.application.use_cases.export_pattern_to_pdf import (
 )
 from app.domain.data.dmc_colors import DmcColor
 from app.domain.model.pattern import Palette, Pattern, PatternGrid
-from app.infrastructure.image_processing.pillow_image_resizer import PillowImageResizer
-from app.infrastructure.pdf_export.pattern_pdf_exporter import ReportLabPatternPdfExporter
+from app.web.api.dependencies import (
+    get_calculate_fabric_use_case,
+    get_convert_image_use_case,
+    get_export_pdf_use_case,
+)
 
 router = APIRouter()
-
-
-# -----------------------------
-# Dependency functions
-# -----------------------------
-
-
-def get_calculate_fabric_use_case() -> CalculateFabricRequirements:
-    """Dependency for CalculateFabricRequirements use case."""
-    return CalculateFabricRequirements()
-
-
-def get_convert_use_case() -> ConvertImageToPattern:
-    """Dependency for ConvertImageToPattern use case."""
-    return ConvertImageToPattern(image_resizer=PillowImageResizer())
-
-
-def get_export_pdf_use_case() -> ExportPatternToPdf:
-    """Dependency for ExportPatternToPdf use case."""
-    return ExportPatternToPdf(exporter=ReportLabPatternPdfExporter())
 
 
 # -----------------------------
@@ -136,7 +119,7 @@ async def convert_image(
     num_colors: int = Form(gt=0),
     target_width: Optional[int] = Form(default=None, gt=0),
     target_height: Optional[int] = Form(default=None, gt=0),
-    use_case: ConvertImageToPattern = Depends(get_convert_use_case),
+    use_case: ConvertImageToPattern = Depends(get_convert_image_use_case),
 ) -> ConvertResponseBody:
     image_data = await file.read()
 
