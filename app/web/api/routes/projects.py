@@ -240,9 +240,9 @@ class CompletePatternResponse(BaseModel):
 async def create_complete_pattern(
     name: str = Form(..., min_length=1),
     file: UploadFile = File(...),
-    target_width: int = Form(..., gt=0),
-    target_height: int = Form(..., gt=0),
     num_colors: int = Form(..., gt=0),
+    target_width: Optional[int] = Form(default=None),
+    target_height: Optional[int] = Form(default=None),
     aida_count: int = Form(default=14, gt=0),
     num_strands: int = Form(default=2, ge=1, le=6),
     margin_cm: float = Form(default=5.0, ge=0),
@@ -251,6 +251,9 @@ async def create_complete_pattern(
     """
     Complete end-to-end workflow: create project, upload image, generate pattern,
     export PDF, save all results, and mark project as completed.
+
+    If target_width and target_height are not provided, the pattern will use
+    the actual dimensions of the uploaded image.
 
     All operations are performed in a single transaction.
     If any step fails, the entire operation is rolled back.

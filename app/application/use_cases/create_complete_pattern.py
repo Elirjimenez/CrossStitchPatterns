@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
+import io
 import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
+
+from PIL import Image
 
 from app.application.ports.file_storage import FileStorage
 from app.application.ports.image_resizer import ImageResizer
@@ -32,14 +35,18 @@ ROWS_PER_PAGE = 49
 
 @dataclass(frozen=True)
 class CreateCompletePatternRequest:
-    """Request to create a complete pattern from source image."""
+    """Request to create a complete pattern from source image.
+
+    If target_width and target_height are None, the actual image dimensions
+    will be used (no resizing).
+    """
 
     name: str
     image_data: bytes
     image_filename: str
-    target_width: int
-    target_height: int
     num_colors: int
+    target_width: Optional[int] = None
+    target_height: Optional[int] = None
     aida_count: int = 14
     num_strands: int = 2
     margin_cm: float = 5.0
@@ -90,6 +97,18 @@ class CreateCompletePattern:
     def execute(self, request: CreateCompletePatternRequest) -> CreateCompletePatternResult:
         """Execute the complete pattern creation workflow."""
 
+        # Determine target dimensions (use image size if not specified)
+        target_width = target_width
+        target_height = target_height
+
+        if target_width is None or target_height is None:
+            # Load image to get actual dimensions
+            image = Image.open(io.BytesIO(request.image_data))
+            if target_width is None:
+                target_width = image.width
+            if target_height is None:
+                target_height = image.height
+
         # Step 1: Create project
         project_id = str(uuid.uuid4())
         project = Project(
@@ -99,8 +118,8 @@ class CreateCompletePattern:
             status=ProjectStatus.CREATED,
             source_image_ref=None,
             parameters={
-                "target_width": request.target_width,
-                "target_height": request.target_height,
+                "target_width": target_width,
+                "target_height": target_height,
                 "num_colors": request.num_colors,
                 "aida_count": request.aida_count,
                 "num_strands": request.num_strands,
@@ -123,15 +142,15 @@ class CreateCompletePattern:
 
         # Step 4: Convert image to pattern
         pixels = self._image_resizer.load_and_resize(
-            request.image_data, request.target_width, request.target_height
+            request.image_data, target_width, target_height
         )
         palette, index_grid, dmc_colors = select_palette(pixels, request.num_colors)
 
         from app.domain.model.pattern import PatternGrid
 
         grid = PatternGrid(
-            width=request.target_width,
-            height=request.target_height,
+            width=target_width,
+            height=target_height,
             cells=index_grid,
         )
         pattern = Pattern(grid=grid, palette=palette)
