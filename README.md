@@ -94,6 +94,8 @@ The application is deployed and accessible at:
 
 Try it out! Upload an image and generate your cross-stitch pattern.
 
+⚠️ **Note:** Free tier hosting, may sleep after inactivity.
+
 ---
 
 ## 📦 Deployment
