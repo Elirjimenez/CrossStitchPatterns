@@ -229,6 +229,31 @@ GET /health  # Health check endpoint
 
 ## 🏗️ Architecture
 
+### Deployment Architecture
+
+```mermaid
+graph LR
+    A[Client/Browser] -->|HTTPS| B[Railway Platform]
+    B -->|Routes| C[FastAPI Application]
+    C -->|Queries| D[(PostgreSQL Database)]
+    C -->|Read/Write| E[File Storage]
+
+    style A fill:#e1f5ff
+    style B fill:#ffd700
+    style C fill:#90EE90
+    style D fill:#87CEEB
+    style E fill:#FFB6C1
+```
+
+**Components:**
+- **Client**: Web browser accessing API via Swagger UI or direct API calls
+- **Railway**: Cloud platform hosting both app and PostgreSQL
+- **FastAPI**: REST API handling pattern generation, PDF export, project management
+- **PostgreSQL**: Persistent storage for projects and pattern results
+- **File Storage**: Local filesystem for source images and generated PDFs
+
+### Clean Architecture
+
 The project follows **Clean Architecture** principles:
 
 ```
