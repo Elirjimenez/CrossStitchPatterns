@@ -4,7 +4,6 @@ from typing import Any, Dict, List, Optional
 
 from fastapi import APIRouter, Depends, File, Form, UploadFile
 from pydantic import BaseModel, Field
-from sqlalchemy.orm import Session
 
 from app.application.ports.file_storage import FileStorage
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
@@ -17,13 +16,13 @@ from app.application.use_cases.save_pattern_result import (
 )
 from app.domain.exceptions import ProjectNotFoundError
 from app.domain.model.project import ProjectStatus
-from app.infrastructure.persistence.sqlalchemy_project_repository import (
-    SqlAlchemyProjectRepository,
+from app.domain.repositories.pattern_result_repository import PatternResultRepository
+from app.domain.repositories.project_repository import ProjectRepository
+from app.web.api.dependencies import (
+    get_file_storage,
+    get_pattern_result_repository,
+    get_project_repository,
 )
-from app.infrastructure.persistence.sqlalchemy_pattern_result_repository import (
-    SqlAlchemyPatternResultRepository,
-)
-from app.web.api.dependencies import get_db_session, get_file_storage
 
 router = APIRouter()
 
@@ -100,8 +99,10 @@ def _pattern_result_to_response(pr) -> PatternResultResponse:
 
 
 @router.post("", response_model=ProjectResponse, status_code=201)
-def create_project(body: CreateProjectBody, session: Session = Depends(get_db_session)):
-    repo = SqlAlchemyProjectRepository(session)
+def create_project(
+    body: CreateProjectBody,
+    repo: ProjectRepository = Depends(get_project_repository),
+):
     use_case = CreateProject(project_repo=repo)
     project = use_case.execute(
         CreateProjectRequest(
@@ -114,16 +115,17 @@ def create_project(body: CreateProjectBody, session: Session = Depends(get_db_se
 
 
 @router.get("", response_model=List[ProjectResponse])
-def list_projects(session: Session = Depends(get_db_session)):
-    repo = SqlAlchemyProjectRepository(session)
+def list_projects(repo: ProjectRepository = Depends(get_project_repository)):
     use_case = ListProjects(project_repo=repo)
     projects = use_case.execute()
     return [_project_to_response(p) for p in projects]
 
 
 @router.get("/{project_id}", response_model=ProjectResponse)
-def get_project(project_id: str, session: Session = Depends(get_db_session)):
-    repo = SqlAlchemyProjectRepository(session)
+def get_project(
+    project_id: str,
+    repo: ProjectRepository = Depends(get_project_repository),
+):
     use_case = GetProject(project_repo=repo)
     project = use_case.execute(project_id)
     return _project_to_response(project)
@@ -133,9 +135,8 @@ def get_project(project_id: str, session: Session = Depends(get_db_session)):
 def update_project_status(
     project_id: str,
     body: UpdateStatusBody,
-    session: Session = Depends(get_db_session),
+    repo: ProjectRepository = Depends(get_project_repository),
 ):
-    repo = SqlAlchemyProjectRepository(session)
     use_case = UpdateProjectStatus(project_repo=repo)
     use_case.execute(project_id, ProjectStatus(body.status))
 
@@ -144,10 +145,9 @@ def update_project_status(
 def create_pattern_result(
     project_id: str,
     body: CreatePatternResultBody,
-    session: Session = Depends(get_db_session),
+    project_repo: ProjectRepository = Depends(get_project_repository),
+    pattern_repo: PatternResultRepository = Depends(get_pattern_result_repository),
 ):
-    project_repo = SqlAlchemyProjectRepository(session)
-    pattern_repo = SqlAlchemyPatternResultRepository(session)
     use_case = SavePatternResult(project_repo=project_repo, pattern_result_repo=pattern_repo)
     result = use_case.execute(
         SavePatternResultRequest(
@@ -170,10 +170,9 @@ def create_pattern_result(
 def upload_source_image(
     project_id: str,
     file: UploadFile = File(...),
-    session: Session = Depends(get_db_session),
+    repo: ProjectRepository = Depends(get_project_repository),
     storage: FileStorage = Depends(get_file_storage),
 ):
-    repo = SqlAlchemyProjectRepository(session)
     project = repo.get(project_id)
     if project is None:
         raise ProjectNotFoundError(f"Project '{project_id}' not found")
@@ -199,12 +198,10 @@ def create_pattern_result_with_pdf(
     grid_width: int = Form(...),
     grid_height: int = Form(...),
     stitch_count: int = Form(...),
-    session: Session = Depends(get_db_session),
+    project_repo: ProjectRepository = Depends(get_project_repository),
+    pattern_repo: PatternResultRepository = Depends(get_pattern_result_repository),
     storage: FileStorage = Depends(get_file_storage),
 ):
-    project_repo = SqlAlchemyProjectRepository(session)
-    pattern_repo = SqlAlchemyPatternResultRepository(session)
-
     pdf_data = file.file.read()
     pdf_ref = storage.save_pdf(project_id, pdf_data, "pattern.pdf")
 

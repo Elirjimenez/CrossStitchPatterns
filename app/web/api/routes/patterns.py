@@ -25,6 +25,26 @@ router = APIRouter()
 
 
 # -----------------------------
+# Dependency functions
+# -----------------------------
+
+
+def get_calculate_fabric_use_case() -> CalculateFabricRequirements:
+    """Dependency for CalculateFabricRequirements use case."""
+    return CalculateFabricRequirements()
+
+
+def get_convert_use_case() -> ConvertImageToPattern:
+    """Dependency for ConvertImageToPattern use case."""
+    return ConvertImageToPattern(image_resizer=PillowImageResizer())
+
+
+def get_export_pdf_use_case() -> ExportPatternToPdf:
+    """Dependency for ExportPatternToPdf use case."""
+    return ExportPatternToPdf(exporter=ReportLabPatternPdfExporter())
+
+
+# -----------------------------
 # Calculate fabric requirements
 # -----------------------------
 
@@ -56,8 +76,10 @@ class FabricResponseBody(BaseModel):
 
 
 @router.post("/calculate-fabric", response_model=FabricResponseBody)
-def calculate_fabric(body: FabricRequestBody) -> FabricResponseBody:
-    use_case = CalculateFabricRequirements()
+def calculate_fabric(
+    body: FabricRequestBody,
+    use_case: CalculateFabricRequirements = Depends(get_calculate_fabric_use_case),
+) -> FabricResponseBody:
     result = use_case.execute(
         FabricRequirementsRequest(
             pattern_width=body.pattern_width,
@@ -106,10 +128,6 @@ class ConvertResponseBody(BaseModel):
     grid: GridInfo
     palette: List[List[int]]
     dmc_colors: List[DmcColorInfo]
-
-
-def get_convert_use_case() -> ConvertImageToPattern:
-    return ConvertImageToPattern(image_resizer=PillowImageResizer())
 
 
 @router.post("/convert", response_model=ConvertResponseBody)
@@ -168,7 +186,10 @@ class ExportPdfRequestBody(BaseModel):
 
 
 @router.post("/export-pdf")
-def export_pdf(body: ExportPdfRequestBody) -> Response:
+def export_pdf(
+    body: ExportPdfRequestBody,
+    use_case: ExportPatternToPdf = Depends(get_export_pdf_use_case),
+) -> Response:
     palette_tuples: List[Tuple[int, int, int]] = [(c[0], c[1], c[2]) for c in body.palette]
 
     pattern = Pattern(
@@ -184,7 +205,6 @@ def export_pdf(body: ExportPdfRequestBody) -> Response:
         DmcColor(number=d.number, name=d.name, r=d.r, g=d.g, b=d.b) for d in body.dmc_colors
     ]
 
-    use_case = ExportPatternToPdf(exporter=ReportLabPatternPdfExporter())
     result = use_case.execute(
         ExportPdfRequest(
             pattern=pattern,
