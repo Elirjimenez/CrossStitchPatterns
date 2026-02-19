@@ -50,6 +50,7 @@ class CreateCompletePatternRequest:
     num_colors: int
     target_width: Optional[int] = None
     target_height: Optional[int] = None
+    min_frequency_pct: float = 1.0
     aida_count: int = 14
     num_strands: int = 2
     margin_cm: float = 5.0
@@ -148,7 +149,9 @@ class CreateCompletePattern:
         pixels = self._image_resizer.load_and_resize(
             request.image_data, target_width, target_height
         )
-        palette, index_grid, dmc_colors = select_palette(pixels, request.num_colors)
+        palette, index_grid, dmc_colors = select_palette(
+            pixels, request.num_colors, request.min_frequency_pct
+        )
         index_grid = reduce_confetti(index_grid)
 
         from app.domain.model.pattern import PatternGrid

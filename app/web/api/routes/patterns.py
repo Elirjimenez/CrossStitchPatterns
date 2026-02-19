@@ -119,6 +119,7 @@ async def convert_image(
     num_colors: int = Form(gt=0),
     target_width: Optional[int] = Form(default=None, gt=0),
     target_height: Optional[int] = Form(default=None, gt=0),
+    min_frequency_pct: float = Form(default=1.0, ge=0.0, le=100.0),
     use_case: ConvertImageToPattern = Depends(get_convert_image_use_case),
 ) -> ConvertResponseBody:
     image_data = await file.read()
@@ -129,6 +130,7 @@ async def convert_image(
             num_colors=num_colors,
             target_width=target_width,
             target_height=target_height,
+            min_frequency_pct=min_frequency_pct,
         )
     )
 

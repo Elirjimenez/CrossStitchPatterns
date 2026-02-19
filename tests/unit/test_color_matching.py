@@ -165,3 +165,46 @@ class TestFindNearestDmcBatch:
         palette, grid, dmc_list = select_palette(pixels, num_colors=10)
         elapsed = time.perf_counter() - t0
         assert elapsed < 5.0, f"select_palette took {elapsed:.2f}s on 100x100 grid — too slow"
+
+
+class TestSelectPaletteFrequencyThreshold:
+    def test_threshold_excludes_rare_color(self):
+        # 9 black pixels + 1 red pixel → red is 10% of total
+        # With threshold=15%, red should be filtered out → only 1 color survives
+        pixels = [[(0, 0, 0)] * 9 + [(255, 0, 0)]]
+        palette, grid, dmc_list = select_palette(pixels, num_colors=10, min_frequency_pct=15.0)
+        assert len(palette.colors) == 1
+        assert len(dmc_list) == 1
+        # All grid indices must be valid
+        for idx in grid[0]:
+            assert 0 <= idx < len(palette.colors)
+
+    def test_threshold_zero_disables_filtering(self):
+        # With threshold=0.0, even a 1-pixel color is kept (up to num_colors)
+        pixels = [[(0, 0, 0)] * 9 + [(255, 0, 0)]]
+        palette, grid, dmc_list = select_palette(pixels, num_colors=10, min_frequency_pct=0.0)
+        assert len(palette.colors) >= 2
+
+    def test_threshold_and_num_colors_both_apply(self):
+        # 5 black, 3 white, 1 red, 1 blue — threshold 15% removes red and blue
+        # Then num_colors=1 caps to just black
+        pixels = [[(0, 0, 0)] * 5 + [(255, 255, 255)] * 3 + [(255, 0, 0)] + [(0, 0, 255)]]
+        palette, grid, dmc_list = select_palette(pixels, num_colors=1, min_frequency_pct=15.0)
+        assert len(palette.colors) == 1
+
+    def test_default_threshold_filters_jpeg_artifacts(self):
+        # Simulates a simple image: dominant red + many tiny variations (each 1 pixel)
+        # in a 100-pixel row. Each artifact is < 1% of total pixels.
+        dominant = (220, 20, 30)  # vivid red
+        # 91 dominant pixels + 9 slightly different "artifact" colors (1 each)
+        artifacts = [
+            (221, 21, 31), (219, 19, 29), (222, 22, 32),
+            (218, 18, 28), (223, 23, 33), (217, 17, 27),
+            (224, 24, 34), (216, 16, 26), (225, 25, 35),
+        ]
+        row = [dominant] * 91 + artifacts
+        pixels = [row]
+        # Use 1.5% threshold to ensure artifacts (1/100 = 1% each) are filtered
+        palette, grid, dmc_list = select_palette(pixels, num_colors=10, min_frequency_pct=1.5)
+        # Only the dominant red DMC color should survive
+        assert len(palette.colors) == 1
