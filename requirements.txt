@@ -8,5 +8,6 @@ sqlalchemy==2.0.25
 psycopg2-binary==2.9.9
 alembic==1.13.1
 pillow==10.2.0
+numpy>=1.26,<3    # Vectorised LAB colour matching
 reportlab==4.0.9  # For PDF generation
 structlog==24.1.0  # For structured logging

@@ -3,6 +3,7 @@ from app.domain.data.dmc_colors import DMC_COLORS
 from app.domain.services.color_matching import (
     delta_e,
     find_nearest_dmc,
+    find_nearest_dmc_batch,
     rgb_to_lab,
     select_palette,
 )
@@ -115,3 +116,52 @@ class TestSelectPalette:
         palette, grid, dmc_list = select_palette(pixels, num_colors=2)
         assert len(palette.colors) == 2
         assert len(dmc_list) == 2
+
+
+class TestFindNearestDmcBatch:
+    """Tests for the vectorised batch DMC matcher."""
+
+    def test_single_pixel_matches_scalar_function(self):
+        # Batch result for one pixel must agree with the scalar find_nearest_dmc
+        import numpy as np
+        for rgb in [(0, 0, 0), (255, 255, 255), (255, 0, 0), (0, 0, 255)]:
+            scalar = find_nearest_dmc(rgb)
+            arr = np.array([rgb], dtype=np.uint8)
+            batch_idx = find_nearest_dmc_batch(arr)
+            dmc_list = list(DMC_COLORS.values())
+            batch_color = dmc_list[batch_idx[0]]
+            assert batch_color.number == scalar.number, (
+                f"Mismatch for {rgb}: scalar={scalar.number}, batch={batch_color.number}"
+            )
+
+    def test_batch_multiple_pixels(self):
+        import numpy as np
+        rgbs = [(0, 0, 0), (255, 255, 255), (255, 0, 0), (0, 128, 0), (0, 0, 255)]
+        arr = np.array(rgbs, dtype=np.uint8)
+        indices = find_nearest_dmc_batch(arr)
+        assert indices.shape == (len(rgbs),)
+        dmc_list = list(DMC_COLORS.values())
+        for i, rgb in enumerate(rgbs):
+            expected = find_nearest_dmc(rgb)
+            got = dmc_list[indices[i]]
+            assert got.number == expected.number
+
+    def test_batch_handles_single_row_image(self):
+        # select_palette must give same result whether grid is tiny or large
+        pixels = [[(0, 0, 0), (255, 255, 255)], [(255, 0, 0), (0, 0, 255)]]
+        palette, grid, dmc_list = select_palette(pixels, num_colors=4)
+        assert len(grid) == 2
+        assert len(grid[0]) == 2
+        assert all(0 <= idx < len(palette.colors) for row in grid for idx in row)
+
+    def test_select_palette_fast_on_large_grid(self):
+        # A 100x100 grid (10 000 pixels) should complete in under 5 seconds
+        import time
+        row = [(r, g, b) for r in range(0, 256, 26) for g in range(0, 256, 26) for b in (0, 128, 255)]
+        # Trim/extend to 100 wide
+        row = (row * 4)[:100]
+        pixels = [row] * 100
+        t0 = time.perf_counter()
+        palette, grid, dmc_list = select_palette(pixels, num_colors=10)
+        elapsed = time.perf_counter() - t0
+        assert elapsed < 5.0, f"select_palette took {elapsed:.2f}s on 100x100 grid — too slow"
