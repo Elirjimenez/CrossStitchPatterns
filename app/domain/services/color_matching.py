@@ -188,7 +188,7 @@ def find_nearest_dmc_batch(rgb_pixels: np.ndarray) -> np.ndarray:
 # ---------------------------------------------------------------------------
 
 def select_palette(
-    pixels: List[List[RGB]], num_colors: int, min_frequency_pct: float = 0.0
+    pixels: List[List[RGB]], num_colors: int, min_frequency_pct: float = 1.0
 ) -> Tuple[Palette, List[List[int]], List[DmcColor]]:
     """Map a 2D pixel grid to a DMC palette with at most num_colors colors.
 
@@ -196,8 +196,8 @@ def select_palette(
     fewer distinct colors or the frequency threshold removes rare ones.
 
     min_frequency_pct: DMC colors covering fewer than this percentage of total
-    pixels are treated as noise and merged into the nearest surviving color.
-    Set to 0.0 (default) to disable. Typical useful value: 1.0.
+    pixels are treated as noise/artifacts and merged into the nearest surviving color.
+    Set to 0.0 to disable filtering. Default is 1.0 (1%).
 
     Returns:
         palette:  Palette with the selected DMC RGB colors

@@ -16,6 +16,7 @@ class ConvertImageRequest:
     num_colors: int
     target_width: Optional[int] = None
     target_height: Optional[int] = None
+    min_frequency_pct: float = 1.0
 
 
 @dataclass(frozen=True)
@@ -41,7 +42,9 @@ class ConvertImageToPattern:
             request.image_data, target_width, target_height
         )
 
-        palette, index_grid, dmc_list = select_palette(pixels, request.num_colors)
+        palette, index_grid, dmc_list = select_palette(
+            pixels, request.num_colors, request.min_frequency_pct
+        )
         index_grid = reduce_confetti(index_grid)
 
         grid = PatternGrid(
