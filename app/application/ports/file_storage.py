@@ -19,6 +19,19 @@ class FileStorage(Protocol):
         """Save PDF and return relative path."""
         ...
 
+    def read_source_image(self, project_id: str, ref: str) -> bytes:
+        """Read and return source image bytes for the given project and ref.
+
+        Args:
+            project_id: The project identifier.
+            ref: Relative storage path returned by save_source_image.
+
+        Raises:
+            FileNotFoundError: If the file does not exist.
+            ValueError: If ref attempts path traversal.
+        """
+        ...
+
     def resolve_file_for_download(self, relative_path: str) -> Optional[Path]:
         """Safely resolve a relative path for download.
 

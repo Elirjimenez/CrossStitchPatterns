@@ -7,33 +7,23 @@ import os
 import uuid
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import List, Optional
 
 from PIL import Image
 
 from app.application.ports.file_storage import FileStorage
 from app.application.ports.image_resizer import ImageResizer
-from app.application.ports.pattern_pdf_exporter import (
-    LegendEntryDTO,
-    PatternPdfExporter,
+from app.application.ports.pattern_pdf_exporter import PatternPdfExporter
+from app.application.services.pattern_workflow import (
+    PatternWorkflowRequest,
+    build_and_save_pattern_result,
+    run_pattern_workflow,
 )
 from app.domain.data.dmc_colors import DmcColor
 from app.domain.model.pattern import Pattern
 from app.domain.model.project import PatternResult, Project, ProjectStatus
 from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
-from app.domain.services.color_matching import select_palette
-from app.domain.services.confetti import reduce_confetti
-from app.domain.services.fabric import compute_fabric_size_cm
-from app.domain.services.floss import compute_per_color_floss
-from app.domain.services.pattern_tiling import (
-    compute_cell_size_mm,
-    compute_tiles,
-    cols_per_page,
-    rows_per_page,
-)
-from app.domain.services.stitch_count import count_stitches_per_color
-from app.domain.services.symbol_map import assign_symbols
 
 
 @dataclass(frozen=True)
@@ -107,7 +97,6 @@ class CreateCompletePattern:
         target_height = request.target_height
 
         if target_width is None or target_height is None:
-            # Load image to get actual dimensions
             image = Image.open(io.BytesIO(request.image_data))
             if target_width is None:
                 target_width = image.width
@@ -145,99 +134,42 @@ class CreateCompletePattern:
         # Step 3: Update project status to IN_PROGRESS
         self._project_repo.update_status(project_id, ProjectStatus.IN_PROGRESS)
 
-        # Step 4: Convert image to pattern
-        pixels = self._image_resizer.load_and_resize(
-            request.image_data, target_width, target_height
-        )
-        palette, index_grid, dmc_colors = select_palette(
-            pixels, request.num_colors, request.min_frequency_pct
-        )
-        index_grid = reduce_confetti(index_grid)
-
-        from app.domain.model.pattern import PatternGrid
-
-        grid = PatternGrid(
-            width=target_width,
-            height=target_height,
-            cells=index_grid,
-        )
-        pattern = Pattern(grid=grid, palette=palette)
-
-        # Step 5: Export pattern to PDF
-        fabric_size = compute_fabric_size_cm(
-            stitches_w=pattern.grid.width,
-            stitches_h=pattern.grid.height,
-            aida_count=request.aida_count,
-            margin_cm=request.margin_cm,
-        )
-
-        stitch_counts = count_stitches_per_color(pattern.grid)
-        symbols = assign_symbols(len(pattern.palette.colors))
-        floss = compute_per_color_floss(stitch_counts, request.aida_count, request.num_strands)
-
-        legend_entries: List[LegendEntryDTO] = []
-        for f in floss:
-            dmc = dmc_colors[f.palette_index]
-            sym = symbols[f.palette_index]
-            legend_entries.append(
-                LegendEntryDTO(
-                    symbol=sym,
-                    dmc_number=dmc.number,
-                    dmc_name=dmc.name,
-                    r=dmc.r,
-                    g=dmc.g,
-                    b=dmc.b,
-                    stitch_count=f.stitch_count,
-                    skeins=f.skeins,
-                )
-            )
-
-        cell_size_mm = compute_cell_size_mm(pattern.grid.width, pattern.grid.height)
-        tiling = compute_tiles(
-            grid_width=pattern.grid.width,
-            grid_height=pattern.grid.height,
-            cols_per_page=cols_per_page(cell_size_mm),
-            rows_per_page=rows_per_page(cell_size_mm),
-        )
-
-        pdf_bytes = self._pdf_exporter.render(
-            pattern=pattern,
+        # Steps 4–6: image → pattern → PDF (shared service)
+        workflow_result = run_pattern_workflow(
+            request=PatternWorkflowRequest(
+                image_data=request.image_data,
+                num_colors=request.num_colors,
+                target_width=target_width,
+                target_height=target_height,
+                min_frequency_pct=request.min_frequency_pct,
+                aida_count=request.aida_count,
+                num_strands=request.num_strands,
+                margin_cm=request.margin_cm,
+                variant=request.variant,
+            ),
+            image_resizer=self._image_resizer,
+            pdf_exporter=self._pdf_exporter,
             title=request.name,
-            fabric_size=fabric_size,
-            aida_count=request.aida_count,
-            margin_cm=request.margin_cm,
-            legend_entries=legend_entries,
-            variant=request.variant,
-            symbols=symbols,
-            tiles=tiling.tiles,
-            cell_size_mm=cell_size_mm,
         )
 
-        # Step 6: Save PDF
+        # Step 7: Save PDF
         pdf_ref = self._file_storage.save_pdf(
             project_id=project_id,
-            data=pdf_bytes,
+            data=workflow_result.pdf_bytes,
             filename="pattern.pdf",
         )
 
-        # Step 7: Save pattern result
-        total_stitches = sum(sc.count for sc in stitch_counts)
-        pattern_result = PatternResult(
-            id=str(uuid.uuid4()),
+        # Step 8: Save PatternResult
+        pattern_result = build_and_save_pattern_result(
             project_id=project_id,
-            created_at=datetime.now(timezone.utc),
-            palette=self._serialize_palette(palette, dmc_colors),
-            grid_width=pattern.grid.width,
-            grid_height=pattern.grid.height,
-            stitch_count=total_stitches,
+            workflow_result=workflow_result,
             pdf_ref=pdf_ref,
+            pattern_result_repo=self._pattern_result_repo,
         )
-        self._pattern_result_repo.add(pattern_result)
 
-        # Step 8: Update project status to COMPLETED
+        # Step 9: Update project status to COMPLETED
         self._project_repo.update_status(project_id, ProjectStatus.COMPLETED)
 
-        # Step 9: Return all artifacts
         return CreateCompletePatternResult(
             project=Project(
                 id=project_id,
@@ -247,24 +179,8 @@ class CreateCompletePattern:
                 source_image_ref=source_image_ref,
                 parameters=project.parameters,
             ),
-            pattern=pattern,
-            dmc_colors=dmc_colors,
+            pattern=workflow_result.pattern,
+            dmc_colors=workflow_result.dmc_colors,
             pattern_result=pattern_result,
-            pdf_bytes=pdf_bytes,
+            pdf_bytes=workflow_result.pdf_bytes,
         )
-
-    def _serialize_palette(self, palette, dmc_colors: List[DmcColor]) -> Dict[str, Any]:
-        """Serialize palette and DMC colors for storage."""
-        return {
-            "colors": [{"r": color[0], "g": color[1], "b": color[2]} for color in palette.colors],
-            "dmc_colors": [
-                {
-                    "number": dmc.number,
-                    "name": dmc.name,
-                    "r": dmc.r,
-                    "g": dmc.g,
-                    "b": dmc.b,
-                }
-                for dmc in dmc_colors
-            ],
-        }
