@@ -5,26 +5,29 @@ Server-rendered page routes. These return full HTML responses via Jinja2 templat
 as opposed to the JSON API routes under /api.
 """
 
+import os
 from pathlib import Path
 
 import structlog
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
-from fastapi import Form
-
+from app.application.ports.file_storage import FileStorage
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
 from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
 from app.domain.exceptions import DomainException, ProjectNotFoundError
 from app.domain.repositories.project_repository import ProjectRepository
-from app.web.api.dependencies import get_project_repository
+from app.web.api.dependencies import get_file_storage, get_project_repository
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
 
 templates = Jinja2Templates(directory=Path(__file__).parent / "templates")
+
+_ALLOWED_IMAGE_TYPES = {"image/png", "image/jpeg", "image/webp", "image/gif"}
+_MAX_UPLOAD_BYTES = 10 * 1024 * 1024  # 10 MB
 
 
 @router.get("/", response_class=HTMLResponse)
@@ -145,6 +148,7 @@ async def project_detail(
                 "status": project.status.value,
                 "created_at": project.created_at.strftime("%d %b %Y"),
                 "source_image_ref": project.source_image_ref,
+                "project_id": project.id,
             },
         )
     except ProjectNotFoundError:
@@ -160,5 +164,86 @@ async def project_detail(
             request,
             "project_not_found.html",
             {"project_id": project_id, "unexpected_error": True},
+            status_code=500,
+        )
+
+
+def _source_image_card(
+    request: Request,
+    project_id: str,
+    source_image_ref: str | None,
+    error: str | None = None,
+    status_code: int = 200,
+) -> HTMLResponse:
+    """Helper: render the source image card partial."""
+    return templates.TemplateResponse(
+        request,
+        "partials/source_image_card.html",
+        {"project_id": project_id, "source_image_ref": source_image_ref, "error": error},
+        status_code=status_code,
+    )
+
+
+@router.post("/hx/projects/{project_id}/source-image", response_class=HTMLResponse)
+async def hx_upload_source_image(
+    project_id: str,
+    request: Request,
+    file: UploadFile = File(...),
+    repo: ProjectRepository = Depends(get_project_repository),
+    storage: FileStorage = Depends(get_file_storage),
+) -> HTMLResponse:
+    """
+    HTMX partial endpoint: upload a source image for a project.
+
+    Validates file type, saves via FileStorage, updates the project ref,
+    and returns the refreshed source-image card partial.
+    """
+    # --- Validate file presence ---
+    if not file.filename:
+        return _source_image_card(
+            request, project_id, None,
+            error="Please select an image file to upload.",
+            status_code=400,
+        )
+
+    # --- Validate content type ---
+    content_type = (file.content_type or "").split(";")[0].strip().lower()
+    if content_type not in _ALLOWED_IMAGE_TYPES:
+        return _source_image_card(
+            request, project_id, None,
+            error="Only image files are accepted (PNG, JPEG, WebP, GIF).",
+            status_code=400,
+        )
+
+    try:
+        # --- Validate project exists ---
+        project = repo.get(project_id)
+        if project is None:
+            return _source_image_card(
+                request, project_id, None,
+                error=f"Project '{project_id}' not found.",
+                status_code=404,
+            )
+
+        # --- Read, validate size, and save ---
+        data = await file.read()
+        if len(data) > _MAX_UPLOAD_BYTES:
+            return _source_image_card(
+                request, project_id, project.source_image_ref,
+                error="File is too large. Maximum size is 10 MB.",
+                status_code=400,
+            )
+
+        _, extension = os.path.splitext(file.filename)
+        ref = storage.save_source_image(project_id, data, extension)
+        repo.update_source_image_ref(project_id, ref)
+
+        return _source_image_card(request, project_id, ref)
+
+    except Exception as exc:
+        logger.error("hx_upload_source_image_failed", project_id=project_id, error=str(exc), exc_info=True)
+        return _source_image_card(
+            request, project_id, None,
+            error="An unexpected error occurred. Please try again.",
             status_code=500,
         )

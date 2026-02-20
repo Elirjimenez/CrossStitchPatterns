@@ -433,3 +433,164 @@ class TestProjectDetailPage:
         response = error_client.get("/projects/any-id")
 
         assert response.status_code == 500
+
+    def test_detail_page_contains_upload_form(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert f'hx-post="/hx/projects/{project_id}/source-image"' in response.text
+
+    def test_detail_page_contains_source_image_card(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert 'id="source-image-card"' in response.text
+
+
+# ---------------------------------------------------------------------------
+# Task 5 — POST /hx/projects/{project_id}/source-image (upload source image)
+# ---------------------------------------------------------------------------
+
+_FAKE_PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
+_FAKE_JPG = b"\xff\xd8\xff\xe0" + b"\x00" * 20
+_FAKE_WEBP = b"RIFF\x00\x00\x00\x00WEBP" + b"\x00" * 10
+
+
+class TestHxUploadSourceImage:
+    def test_valid_png_returns_200(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert response.status_code == 200
+
+    def test_valid_jpeg_returns_200(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.jpg", _FAKE_JPG, "image/jpeg")},
+        )
+
+        assert response.status_code == 200
+
+    def test_valid_webp_returns_200(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.webp", _FAKE_WEBP, "image/webp")},
+        )
+
+        assert response.status_code == 200
+
+    def test_success_shows_image_uploaded(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert "Image uploaded" in response.text
+
+    def test_success_response_is_html(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert "text/html" in response.headers["content-type"]
+
+    def test_success_response_retains_upload_form(self, client):
+        """Card stays interactive after upload so user can replace the image."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert f'hx-post="/hx/projects/{project_id}/source-image"' in response.text
+
+    def test_non_image_file_returns_400(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("doc.txt", b"hello", "text/plain")},
+        )
+
+        assert response.status_code == 400
+
+    def test_non_image_file_shows_error(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("doc.pdf", b"%PDF", "application/pdf")},
+        )
+
+        assert "image" in response.text.lower()
+
+    def test_empty_filename_returns_client_error(self, client):
+        """When no file is selected the upload must fail with a 4xx.
+        FastAPI's multipart validation (422) or our filename check (400) both satisfy this."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("", _FAKE_PNG, "image/png")},
+        )
+
+        assert response.status_code in (400, 422)
+
+    def test_unknown_project_returns_404(self, client):
+        response = client.post(
+            "/hx/projects/no-such-id/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert response.status_code == 404
+
+    def test_unknown_project_shows_error(self, client):
+        response = client.post(
+            "/hx/projects/no-such-id/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert "not found" in response.text.lower()
+
+    def test_repo_error_returns_500(self, error_client):
+        response = error_client.post(
+            "/hx/projects/any-id/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert response.status_code == 500
+
+    def test_repo_error_shows_error(self, error_client):
+        response = error_client.post(
+            "/hx/projects/any-id/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert "error" in response.text.lower()
