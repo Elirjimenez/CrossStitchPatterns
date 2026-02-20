@@ -4,12 +4,31 @@
 
 {% block content %}
 <div class="py-10">
-  <h2 class="text-3xl font-bold text-gray-800 mb-2">Projects</h2>
-  <p class="text-gray-500 mb-8">Your cross-stitch projects will appear here.</p>
+  <div class="flex items-center justify-between mb-8">
+    <h2 class="text-3xl font-bold text-gray-800">Projects</h2>
+  </div>
 
-  <div class="border-2 border-dashed border-gray-300 rounded-xl p-16 text-center text-gray-400">
-    <p class="text-lg font-medium">Coming soon</p>
-    <p class="text-sm mt-1">Project listing and creation will be implemented in the next task.</p>
+  <noscript>
+    <p class="text-gray-500 text-sm mb-4">Enable JavaScript to load projects dynamically.</p>
+  </noscript>
+
+  <!-- Loading indicator (shown while HTMX fetches the partial) -->
+  <div id="projects-loading" class="htmx-indicator flex items-center gap-2 text-gray-400 text-sm mb-4">
+    <svg class="animate-spin h-4 w-4 text-indigo-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+    </svg>
+    Loading projects&hellip;
+  </div>
+
+  <!-- HTMX target: swapped with the partial on load -->
+  <div
+    id="projects-list"
+    hx-get="/hx/projects"
+    hx-trigger="load"
+    hx-target="#projects-list"
+    hx-swap="innerHTML"
+    hx-indicator="#projects-loading">
   </div>
 </div>
 {% endblock %}
