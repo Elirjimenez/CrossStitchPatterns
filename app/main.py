@@ -5,15 +5,18 @@ This module initializes the FastAPI application and configures routes.
 """
 
 from contextlib import asynccontextmanager
+from pathlib import Path
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from starlette.responses import JSONResponse
 
 from app.config import get_settings
 from app.domain.exceptions import DomainException
 from app.infrastructure.logging import setup_logging
 from app.web.api.routes import health, patterns, projects
+from app.web import routes as web_routes
 
 # Application metadata
 APP_TITLE = "Cross-Stitch Pattern Generator"
@@ -77,10 +80,17 @@ def create_app() -> FastAPI:
     # Register exception handlers
     app.add_exception_handler(DomainException, domain_exception_handler)
 
-    # Register routes
+    # Mount static files
+    static_dir = Path(__file__).parent / "web" / "static"
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+
+    # Register API routes
     app.include_router(health.router, tags=["health"])
     app.include_router(patterns.router, prefix="/api/patterns", tags=["patterns"])
     app.include_router(projects.router, prefix="/api/projects", tags=["projects"])
+
+    # Register HTML (web) routes
+    app.include_router(web_routes.router, tags=["web"])
 
     return app
 

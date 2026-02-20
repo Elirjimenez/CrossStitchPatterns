@@ -11,3 +11,4 @@ pillow==10.2.0
 numpy>=1.26,<3    # Vectorised LAB colour matching
 reportlab==4.0.9  # For PDF generation
 structlog==24.1.0  # For structured logging
+jinja2==3.1.4  # For HTML template rendering
