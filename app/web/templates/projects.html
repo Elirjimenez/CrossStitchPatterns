@@ -4,8 +4,32 @@
 
 {% block content %}
 <div class="py-10">
-  <div class="flex items-center justify-between mb-8">
-    <h2 class="text-3xl font-bold text-gray-800">Projects</h2>
+  <h2 class="text-3xl font-bold text-gray-800 mb-8">Projects</h2>
+
+  <!-- Create Project form -->
+  <div class="bg-white border border-gray-200 rounded-xl p-6 mb-8 shadow-sm">
+    <h3 class="text-lg font-semibold text-gray-700 mb-4">New Project</h3>
+    <form
+      hx-post="/hx/projects/create"
+      hx-target="#project-form-feedback"
+      hx-swap="innerHTML">
+      <div class="flex gap-3 items-start">
+        <div class="flex-1">
+          <input
+            type="text"
+            name="name"
+            placeholder="Project name"
+            required
+            class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400" />
+        </div>
+        <button
+          type="submit"
+          class="bg-indigo-600 text-white px-5 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors">
+          Create
+        </button>
+      </div>
+    </form>
+    <div id="project-form-feedback" class="mt-3"></div>
   </div>
 
   <noscript>
@@ -21,11 +45,11 @@
     Loading projects&hellip;
   </div>
 
-  <!-- HTMX target: swapped with the partial on load -->
+  <!-- HTMX target: reloads on page load and after every successful project creation -->
   <div
     id="projects-list"
     hx-get="/hx/projects"
-    hx-trigger="load"
+    hx-trigger="load, projectsChanged from:body"
     hx-target="#projects-list"
     hx-swap="innerHTML"
     hx-indicator="#projects-loading">
