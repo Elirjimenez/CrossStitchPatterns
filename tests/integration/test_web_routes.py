@@ -5,6 +5,7 @@ Covers:
 - Task 1: GET /  (home page)
 - Task 1: GET /projects  (projects page shell)
 - Task 2: GET /hx/projects  (HTMX partial — empty, populated, error states)
+- Task 3: POST /hx/projects/create  (create project via HTMX form)
 """
 
 import pytest
@@ -139,16 +140,43 @@ class TestProjectsPage:
         assert "Projects" in response.text
 
     def test_contains_htmx_trigger(self, client):
-        """The projects container must declare the HTMX load trigger."""
+        """The projects list container must declare hx-get and listen for projectsChanged."""
         response = client.get("/projects")
 
         assert 'hx-get="/hx/projects"' in response.text
-        assert 'hx-trigger="load"' in response.text
+        assert "projectsChanged" in response.text
 
     def test_contains_htmx_target(self, client):
         response = client.get("/projects")
 
         assert 'id="projects-list"' in response.text
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — GET /projects (form)
+# ---------------------------------------------------------------------------
+
+
+class TestProjectsPageForm:
+    def test_contains_create_form(self, client):
+        response = client.get("/projects")
+
+        assert 'hx-post="/hx/projects/create"' in response.text
+
+    def test_form_has_name_input(self, client):
+        response = client.get("/projects")
+
+        assert 'name="name"' in response.text
+
+    def test_form_targets_feedback_div(self, client):
+        response = client.get("/projects")
+
+        assert 'hx-target="#project-form-feedback"' in response.text
+
+    def test_contains_feedback_div(self, client):
+        response = client.get("/projects")
+
+        assert 'id="project-form-feedback"' in response.text
 
 
 # ---------------------------------------------------------------------------
@@ -250,3 +278,63 @@ class TestHxProjectsError:
         response = error_client.get("/hx/projects")
 
         assert 'hx-get="/hx/projects"' in response.text
+
+
+# ---------------------------------------------------------------------------
+# Task 3 — POST /hx/projects/create
+# ---------------------------------------------------------------------------
+
+
+class TestHxCreateProject:
+    def test_valid_name_returns_200(self, client):
+        response = client.post("/hx/projects/create", data={"name": "My Project"})
+
+        assert response.status_code == 200
+
+    def test_valid_name_shows_success_message(self, client):
+        response = client.post("/hx/projects/create", data={"name": "My Project"})
+
+        assert "My Project" in response.text
+
+    def test_valid_name_sets_hx_trigger_header(self, client):
+        response = client.post("/hx/projects/create", data={"name": "My Project"})
+
+        assert "HX-Trigger" in response.headers
+        assert "projectsChanged" in response.headers["HX-Trigger"]
+
+    def test_valid_name_persists_project(self, client):
+        client.post("/hx/projects/create", data={"name": "Persisted"})
+
+        list_response = client.get("/hx/projects")
+
+        assert "Persisted" in list_response.text
+
+    def test_empty_name_returns_400(self, client):
+        response = client.post("/hx/projects/create", data={"name": ""})
+
+        assert response.status_code == 400
+
+    def test_empty_name_shows_error(self, client):
+        response = client.post("/hx/projects/create", data={"name": ""})
+
+        assert "required" in response.text.lower()
+
+    def test_whitespace_name_returns_400(self, client):
+        response = client.post("/hx/projects/create", data={"name": "   "})
+
+        assert response.status_code == 400
+
+    def test_missing_name_returns_400(self, client):
+        response = client.post("/hx/projects/create", data={})
+
+        assert response.status_code == 400
+
+    def test_repo_error_returns_500(self, error_client):
+        response = error_client.post("/hx/projects/create", data={"name": "Test"})
+
+        assert response.status_code == 500
+
+    def test_repo_error_shows_error_message(self, error_client):
+        response = error_client.post("/hx/projects/create", data={"name": "Test"})
+
+        assert "error" in response.text.lower()

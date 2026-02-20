@@ -12,7 +12,11 @@ from fastapi import APIRouter, Depends, Request
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
+from fastapi import Form
+
+from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
 from app.application.use_cases.list_projects import ListProjects
+from app.domain.exceptions import DomainException
 from app.domain.repositories.project_repository import ProjectRepository
 from app.web.api.dependencies import get_project_repository
 
@@ -68,4 +72,54 @@ async def hx_projects(
             request,
             "partials/projects_list.html",
             {"projects": [], "error": True},
+        )
+
+
+@router.post("/hx/projects/create", response_class=HTMLResponse)
+async def hx_create_project(
+    request: Request,
+    name: str = Form(default=""),
+    repo: ProjectRepository = Depends(get_project_repository),
+) -> HTMLResponse:
+    """
+    HTMX partial endpoint: creates a project and returns a flash message.
+
+    On success, sets HX-Trigger: projectsChanged so the projects list reloads.
+    """
+    stripped_name = name.strip()
+
+    if not stripped_name:
+        return templates.TemplateResponse(
+            request,
+            "partials/flash.html",
+            {"success": False, "message": "Project name is required."},
+            status_code=400,
+        )
+
+    try:
+        use_case = CreateProject(project_repo=repo)
+        use_case.execute(CreateProjectRequest(name=stripped_name))
+        response = templates.TemplateResponse(
+            request,
+            "partials/flash.html",
+            {"success": True, "message": f'Project "{stripped_name}" created successfully.'},
+        )
+        response.headers["HX-Trigger"] = '{"projectsChanged": true}'
+        return response
+
+    except DomainException as exc:
+        return templates.TemplateResponse(
+            request,
+            "partials/flash.html",
+            {"success": False, "message": str(exc)},
+            status_code=400,
+        )
+
+    except Exception as exc:
+        logger.error("hx_create_project_failed", error=str(exc), exc_info=True)
+        return templates.TemplateResponse(
+            request,
+            "partials/flash.html",
+            {"success": False, "message": "An unexpected error occurred. Please try again."},
+            status_code=500,
         )
