@@ -15,8 +15,9 @@ from fastapi.templating import Jinja2Templates
 from fastapi import Form
 
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
+from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
-from app.domain.exceptions import DomainException
+from app.domain.exceptions import DomainException, ProjectNotFoundError
 from app.domain.repositories.project_repository import ProjectRepository
 from app.web.api.dependencies import get_project_repository
 
@@ -121,5 +122,43 @@ async def hx_create_project(
             request,
             "partials/flash.html",
             {"success": False, "message": "An unexpected error occurred. Please try again."},
+            status_code=500,
+        )
+
+
+@router.get("/projects/{project_id}", response_class=HTMLResponse)
+async def project_detail(
+    project_id: str,
+    request: Request,
+    repo: ProjectRepository = Depends(get_project_repository),
+) -> HTMLResponse:
+    """Render the project detail page."""
+    try:
+        use_case = GetProject(project_repo=repo)
+        project = use_case.execute(project_id)
+        return templates.TemplateResponse(
+            request,
+            "project_detail.html",
+            {
+                "id": project.id,
+                "name": project.name,
+                "status": project.status.value,
+                "created_at": project.created_at.strftime("%d %b %Y"),
+                "source_image_ref": project.source_image_ref,
+            },
+        )
+    except ProjectNotFoundError:
+        return templates.TemplateResponse(
+            request,
+            "project_not_found.html",
+            {"project_id": project_id},
+            status_code=404,
+        )
+    except Exception as exc:
+        logger.error("project_detail_failed", project_id=project_id, error=str(exc), exc_info=True)
+        return templates.TemplateResponse(
+            request,
+            "project_not_found.html",
+            {"project_id": project_id, "unexpected_error": True},
             status_code=500,
         )
