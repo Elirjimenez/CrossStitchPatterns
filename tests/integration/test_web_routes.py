@@ -6,6 +6,7 @@ Covers:
 - Task 1: GET /projects  (projects page shell)
 - Task 2: GET /hx/projects  (HTMX partial — empty, populated, error states)
 - Task 3: POST /hx/projects/create  (create project via HTMX form)
+- Task 4: GET /projects/{project_id}  (project detail page)
 """
 
 import pytest
@@ -338,3 +339,97 @@ class TestHxCreateProject:
         response = error_client.post("/hx/projects/create", data={"name": "Test"})
 
         assert "error" in response.text.lower()
+
+
+# ---------------------------------------------------------------------------
+# Task 4 — GET /projects/{project_id} (project detail page)
+# ---------------------------------------------------------------------------
+
+
+class TestProjectDetailPage:
+    def test_returns_200_for_existing_project(self, client):
+        resp = client.post("/api/projects", json={"name": "My Pattern"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert response.status_code == 200
+
+    def test_returns_html(self, client):
+        resp = client.post("/api/projects", json={"name": "My Pattern"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert "text/html" in response.headers["content-type"]
+
+    def test_shows_project_name(self, client):
+        resp = client.post("/api/projects", json={"name": "Sunset Flowers"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert "Sunset Flowers" in response.text
+
+    def test_shows_project_id(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert project_id in response.text
+
+    def test_shows_status_badge(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert "Created" in response.text
+
+    def test_shows_created_date(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        # Date is formatted as "DD Mon YYYY" e.g. "20 Feb 2026"
+        import datetime
+        expected_year = str(datetime.datetime.now().year)
+        assert expected_year in response.text
+
+    def test_shows_back_to_projects_link(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert 'href="/projects"' in response.text
+
+    def test_shows_no_image_placeholder_when_no_source(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert "No image uploaded" in response.text
+
+    def test_returns_404_for_unknown_project(self, client):
+        response = client.get("/projects/does-not-exist")
+
+        assert response.status_code == 404
+
+    def test_404_page_shows_not_found_message(self, client):
+        response = client.get("/projects/does-not-exist")
+
+        assert "not found" in response.text.lower()
+
+    def test_404_page_has_back_to_projects_link(self, client):
+        response = client.get("/projects/does-not-exist")
+
+        assert 'href="/projects"' in response.text
+
+    def test_repo_error_returns_500(self, error_client):
+        response = error_client.get("/projects/any-id")
+
+        assert response.status_code == 500
