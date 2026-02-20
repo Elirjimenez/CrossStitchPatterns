@@ -91,6 +91,35 @@ class LocalFileStorage:
         file_path.write_bytes(data)
         return str(file_path.relative_to(self._base_dir))
 
+    def read_source_image(self, project_id: str, ref: str) -> bytes:
+        """Read and return source image bytes for the given ref.
+
+        Args:
+            project_id: The project identifier (unused in path resolution, kept for API symmetry).
+            ref: Relative storage path as returned by save_source_image.
+
+        Raises:
+            ValueError: If ref attempts directory traversal outside base directory.
+            FileNotFoundError: If the file does not exist.
+        """
+        absolute_path = (self._base_dir / ref).resolve()
+
+        # Security: verify resolved path is within base directory
+        try:
+            if not absolute_path.is_relative_to(self._base_dir):
+                raise ValueError(f"Invalid ref — path traversal detected: {ref!r}")
+        except AttributeError:
+            # Python < 3.9 fallback
+            try:
+                absolute_path.relative_to(self._base_dir)
+            except ValueError:
+                raise ValueError(f"Invalid ref — path traversal detected: {ref!r}")
+
+        if not absolute_path.exists() or not absolute_path.is_file():
+            raise FileNotFoundError(f"Source image not found: {ref!r}")
+
+        return absolute_path.read_bytes()
+
     def resolve_file_for_download(self, relative_path: str) -> Optional[Path]:
         """Safely resolve a relative path for download with traversal protection.
 

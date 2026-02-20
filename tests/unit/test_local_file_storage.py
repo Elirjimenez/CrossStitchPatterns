@@ -76,6 +76,21 @@ class TestSavePdf:
         assert full_path.read_bytes() == b"new pdf"
 
 
+class TestReadSourceImage:
+    def test_returns_stored_bytes(self, storage):
+        ref = storage.save_source_image("proj-1", b"\x89PNG data", ".png")
+        data = storage.read_source_image("proj-1", ref)
+        assert data == b"\x89PNG data"
+
+    def test_raises_file_not_found_for_missing_ref(self, storage):
+        with pytest.raises(FileNotFoundError):
+            storage.read_source_image("proj-1", "projects/proj-1/source.png")
+
+    def test_raises_value_error_for_traversal_attempt(self, storage, base_dir):
+        with pytest.raises(ValueError):
+            storage.read_source_image("proj-1", "../../../etc/passwd")
+
+
 class TestProtocolCompliance:
     def test_local_file_storage_satisfies_protocol(self, storage):
         assert isinstance(storage, FileStorage)
