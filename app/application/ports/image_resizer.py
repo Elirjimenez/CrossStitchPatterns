@@ -5,5 +5,11 @@ from app.domain.model.pattern import RGB
 
 
 class ImageResizer(Protocol):
-    def load_and_resize(self, image_bytes: bytes, width: int, height: int) -> List[List[RGB]]: ...
+    def load_and_resize(
+        self,
+        image_bytes: bytes,
+        width: int,
+        height: int,
+        resampling: str = "lanczos",
+    ) -> List[List[RGB]]: ...
     def get_image_size(self, image_bytes: bytes) -> Tuple[int, int]: ...

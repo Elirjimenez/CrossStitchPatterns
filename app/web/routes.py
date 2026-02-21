@@ -367,6 +367,7 @@ async def hx_generate_pattern(
     num_colors: int = Form(default=10),
     target_width: int = Form(default=300),
     target_height: int = Form(default=300),
+    processing_mode: str = Form(default="auto"),
     use_case: CompleteExistingProject = Depends(get_complete_existing_project_use_case),
     repo: ProjectRepository = Depends(get_project_repository),
     settings: Settings = Depends(get_settings),
@@ -428,6 +429,7 @@ async def hx_generate_pattern(
                 num_colors=num_colors,
                 target_width=target_width,
                 target_height=target_height,
+                processing_mode=processing_mode,
             )
         )
         pr = result.pattern_result

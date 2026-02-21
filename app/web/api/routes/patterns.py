@@ -123,6 +123,7 @@ async def convert_image(
     target_width: Optional[int] = Form(default=None, gt=0),
     target_height: Optional[int] = Form(default=None, gt=0),
     min_frequency_pct: float = Form(default=1.0, ge=0.0, le=100.0),
+    processing_mode: str = Form(default="auto"),
     use_case: ConvertImageToPattern = Depends(get_convert_image_use_case),
     settings: Settings = Depends(get_settings),
 ) -> ConvertResponseBody:
@@ -145,6 +146,7 @@ async def convert_image(
             target_width=target_width,
             target_height=target_height,
             min_frequency_pct=min_frequency_pct,
+            processing_mode=processing_mode,
         )
     )
 

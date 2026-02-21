@@ -7,6 +7,12 @@ from PIL import Image, UnidentifiedImageError
 from app.application.ports.image_resizer import ImageResizer
 from app.domain.model.pattern import RGB
 
+_RESAMPLING_MAP = {
+    "lanczos": Image.Resampling.LANCZOS,
+    "bilinear": Image.Resampling.BILINEAR,
+    "nearest": Image.Resampling.NEAREST,
+}
+
 
 class PillowImageResizer(ImageResizer):
     def get_image_size(self, image_bytes: bytes) -> Tuple[int, int]:
@@ -16,7 +22,13 @@ class PillowImageResizer(ImageResizer):
             raise ValueError(f"Invalid image data: {e}")
         return img.size  # (width, height)
 
-    def load_and_resize(self, image_bytes: bytes, width: int, height: int) -> List[List[RGB]]:
+    def load_and_resize(
+        self,
+        image_bytes: bytes,
+        width: int,
+        height: int,
+        resampling: str = "lanczos",
+    ) -> List[List[RGB]]:
         if width <= 0 or height <= 0:
             raise ValueError("width and height must be > 0")
         try:
@@ -25,7 +37,8 @@ class PillowImageResizer(ImageResizer):
             raise ValueError(f"Invalid image data: {e}")
 
         img = img.convert("RGB")
-        img = img.resize((width, height), Image.Resampling.LANCZOS)
+        filter_ = _RESAMPLING_MAP.get(resampling, Image.Resampling.LANCZOS)
+        img = img.resize((width, height), filter_)
 
         pixels: List[List[RGB]] = []
         for y in range(height):

@@ -50,7 +50,7 @@ def mock_file_storage():
 def mock_image_resizer():
     resizer = Mock()
 
-    def load_and_resize_side_effect(image_data, width, height):
+    def load_and_resize_side_effect(image_data, width, height, resampling="lanczos"):
         return [
             [(255 if (i + j) % 2 == 0 else 0, 0, 0) for j in range(width)]
             for i in range(height)
@@ -186,10 +186,14 @@ class TestCompleteExistingProjectHappyPath:
     ):
         use_case.execute(_default_request(target_width=20, target_height=15))
 
-        mock_image_resizer.load_and_resize.assert_called_once()
-        args = mock_image_resizer.load_and_resize.call_args[0]
-        assert args[1] == 20
-        assert args[2] == 15
+        # The resizer is called twice: once for the thumbnail (mode detection)
+        # and once for the final resize with the requested dimensions.
+        calls = mock_image_resizer.load_and_resize.call_args_list
+        assert len(calls) == 2
+        # The second call uses the requested target dimensions.
+        final_call_args = calls[1][0]
+        assert final_call_args[1] == 20
+        assert final_call_args[2] == 15
 
 
 class TestCompleteExistingProjectFailure:
