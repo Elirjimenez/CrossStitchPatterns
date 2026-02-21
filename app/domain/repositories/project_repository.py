@@ -25,3 +25,9 @@ class ProjectRepository(ABC):
     @abstractmethod
     def update_source_image_ref(self, project_id: str, ref: str) -> None:
         pass
+
+    @abstractmethod
+    def update_source_image_metadata(
+        self, project_id: str, *, ref: str, width: int, height: int
+    ) -> None:
+        pass

@@ -30,6 +30,8 @@ class InMemoryProjectRepository(ProjectRepository):
             status=status,
             source_image_ref=existing.source_image_ref,
             parameters=existing.parameters,
+            source_image_width=existing.source_image_width,
+            source_image_height=existing.source_image_height,
         )
         self._store[project_id] = updated
 
@@ -44,6 +46,26 @@ class InMemoryProjectRepository(ProjectRepository):
             status=existing.status,
             source_image_ref=ref,
             parameters=existing.parameters,
+            source_image_width=existing.source_image_width,
+            source_image_height=existing.source_image_height,
+        )
+        self._store[project_id] = updated
+
+    def update_source_image_metadata(
+        self, project_id: str, *, ref: str, width: int, height: int
+    ) -> None:
+        existing = self._store.get(project_id)
+        if existing is None:
+            return
+        updated = Project(
+            id=existing.id,
+            name=existing.name,
+            created_at=existing.created_at,
+            status=existing.status,
+            source_image_ref=ref,
+            parameters=existing.parameters,
+            source_image_width=width,
+            source_image_height=height,
         )
         self._store[project_id] = updated
 
