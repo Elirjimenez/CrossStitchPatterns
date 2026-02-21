@@ -471,14 +471,14 @@ class TestProjectDetailPage:
 
         assert 'id="source-image-card"' in response.text
 
-    def test_detail_page_generate_form_contains_project_id(self, client):
-        """Generate button form URL must contain the real project_id, not be empty."""
+    def test_detail_page_has_actions_container(self, client):
+        """Detail page must include the HTMX lazy-load container for the Actions panel."""
         resp = client.post("/api/projects", json={"name": "Any"})
         project_id = resp.json()["id"]
 
         response = client.get(f"/projects/{project_id}")
 
-        assert f'hx-post="/hx/projects/{project_id}/generate"' in response.text
+        assert f'hx-get="/hx/projects/{project_id}/actions"' in response.text
 
     def test_detail_page_has_no_double_slash_urls(self, client):
         """No HTMX URL should contain // (which would mean project_id was empty)."""
@@ -489,43 +489,14 @@ class TestProjectDetailPage:
 
         assert "projects//" not in response.text
 
-    def test_detail_page_indicator_ids_contain_project_id(self, client):
-        """Loading indicator element IDs must contain the real project_id."""
+    def test_detail_page_upload_indicator_contains_project_id(self, client):
+        """Upload loading indicator element ID must contain the real project_id."""
         resp = client.post("/api/projects", json={"name": "Any"})
         project_id = resp.json()["id"]
 
         response = client.get(f"/projects/{project_id}")
 
         assert f'upload-indicator-{project_id}' in response.text
-        assert f'generate-loading-{project_id}' in response.text
-
-    def test_detail_page_generate_form_has_target_width_input(self, client):
-        """Generate form must have a visible target_width input."""
-        resp = client.post("/api/projects", json={"name": "Any"})
-        project_id = resp.json()["id"]
-
-        response = client.get(f"/projects/{project_id}")
-
-        assert 'name="target_width"' in response.text
-
-    def test_detail_page_generate_form_has_target_height_input(self, client):
-        """Generate form must have a visible target_height input."""
-        resp = client.post("/api/projects", json={"name": "Any"})
-        project_id = resp.json()["id"]
-
-        response = client.get(f"/projects/{project_id}")
-
-        assert 'name="target_height"' in response.text
-
-    def test_detail_page_generate_form_defaults_to_300(self, client):
-        """Both target_width and target_height inputs must default to 300."""
-        resp = client.post("/api/projects", json={"name": "Any"})
-        project_id = resp.json()["id"]
-
-        response = client.get(f"/projects/{project_id}")
-
-        # value="300" must appear at least twice (once for width, once for height)
-        assert response.text.count('value="300"') >= 2
 
 
 # ---------------------------------------------------------------------------
@@ -1045,7 +1016,7 @@ class TestImageDimensionExtraction:
         assert "image" in response.text.lower()
 
     def test_upload_persists_dimensions(self, client):
-        """After uploading a 100×80 image the detail page must reflect those dimensions."""
+        """After uploading a 100×80 image the actions partial must reflect those dimensions."""
         resp = client.post("/api/projects", json={"name": "Dim Test"})
         project_id = resp.json()["id"]
         png_bytes = _make_image_bytes("PNG", width=100, height=80)
@@ -1055,9 +1026,9 @@ class TestImageDimensionExtraction:
             files={"file": ("photo.png", png_bytes, "image/png")},
         )
 
-        detail = client.get(f"/projects/{project_id}")
-        assert 'value="100"' in detail.text
-        assert 'value="80"' in detail.text
+        actions = client.get(f"/hx/projects/{project_id}/actions")
+        assert 'value="100"' in actions.text
+        assert 'value="80"' in actions.text
 
     def test_detail_page_prefills_stored_dimensions(self, client):
         """Generate form target_width/height must use the uploaded image dimensions."""
@@ -1070,12 +1041,12 @@ class TestImageDimensionExtraction:
             files={"file": ("photo.png", png_bytes, "image/png")},
         )
 
-        detail = client.get(f"/projects/{project_id}")
-        assert 'value="200"' in detail.text
-        assert 'value="150"' in detail.text
+        actions = client.get(f"/hx/projects/{project_id}/actions")
+        assert 'value="200"' in actions.text
+        assert 'value="150"' in actions.text
 
     def test_detail_page_clamps_large_dimensions_to_500(self, client):
-        """Dimensions larger than 500 must be clamped to 500 in the form defaults."""
+        """Dimensions larger than 500 must be clamped to 500 in the actions form defaults."""
         resp = client.post("/api/projects", json={"name": "Big Image"})
         project_id = resp.json()["id"]
         png_bytes = _make_image_bytes("PNG", width=800, height=600)
@@ -1085,18 +1056,184 @@ class TestImageDimensionExtraction:
             files={"file": ("photo.png", png_bytes, "image/png")},
         )
 
-        detail = client.get(f"/projects/{project_id}")
+        actions = client.get(f"/hx/projects/{project_id}/actions")
         # Both should be clamped; value="800" and value="600" must NOT appear
-        assert 'value="800"' not in detail.text
-        assert 'value="600"' not in detail.text
-        assert 'value="500"' in detail.text
+        assert 'value="800"' not in actions.text
+        assert 'value="600"' not in actions.text
+        assert 'value="500"' in actions.text
 
     def test_detail_page_no_image_defaults_to_300(self, client):
-        """When no image has been uploaded the defaults remain 300×300."""
+        """When no image has been uploaded the actions defaults remain 300×300."""
         resp = client.post("/api/projects", json={"name": "No Image"})
         project_id = resp.json()["id"]
 
-        detail = client.get(f"/projects/{project_id}")
+        actions = client.get(f"/hx/projects/{project_id}/actions")
 
         # value="300" must appear at least twice (width and height)
-        assert detail.text.count('value="300"') >= 2
+        assert actions.text.count('value="300"') >= 2
+
+
+# ---------------------------------------------------------------------------
+# Fix: GET /hx/projects/{project_id}/actions (lazy-loaded Actions panel)
+# ---------------------------------------------------------------------------
+
+
+class TestHxProjectActions:
+    """GET /hx/projects/{project_id}/actions — Actions panel partial."""
+
+    def test_returns_200_for_existing_project(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert response.status_code == 200
+
+    def test_returns_html(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert "text/html" in response.headers["content-type"]
+
+    def test_contains_generate_form(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert f'hx-post="/hx/projects/{project_id}/generate"' in response.text
+
+    def test_contains_target_width_input(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert 'name="target_width"' in response.text
+
+    def test_contains_target_height_input(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert 'name="target_height"' in response.text
+
+    def test_generate_button_disabled_without_source_image(self, client):
+        """Button shows cursor-not-allowed styling when no image has been uploaded."""
+        resp = client.post("/api/projects", json={"name": "No Image"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert "cursor-not-allowed" in response.text
+
+    def test_generate_button_enabled_with_source_image(self, client):
+        """Button shows active (indigo) styling when an image is present."""
+        resp = client.post("/api/projects", json={"name": "With Image"})
+        project_id = resp.json()["id"]
+        client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert "cursor-not-allowed" not in response.text
+        assert "bg-indigo-600" in response.text
+
+    def test_defaults_to_image_dimensions_when_uploaded(self, client):
+        resp = client.post("/api/projects", json={"name": "Sized"})
+        project_id = resp.json()["id"]
+        png_bytes = _make_image_bytes("PNG", width=160, height=120)
+        client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", png_bytes, "image/png")},
+        )
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert 'value="160"' in response.text
+        assert 'value="120"' in response.text
+
+    def test_defaults_to_300_fallback_without_image(self, client):
+        resp = client.post("/api/projects", json={"name": "Fallback"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert response.text.count('value="300"') >= 2
+
+    def test_contains_self_refresh_trigger_attribute(self, client):
+        """The returned partial must re-register itself so future actions:refresh events work."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert f'hx-get="/hx/projects/{project_id}/actions"' in response.text
+
+    def test_generate_loading_indicator_contains_project_id(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/hx/projects/{project_id}/actions")
+
+        assert f"generate-loading-{project_id}" in response.text
+
+    def test_returns_404_for_unknown_project(self, client):
+        response = client.get("/hx/projects/no-such-project/actions")
+
+        assert response.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# Fix: upload success triggers Actions panel refresh via HX-Trigger header
+# ---------------------------------------------------------------------------
+
+
+class TestUploadActionsRefreshTrigger:
+    """POST /hx/projects/{project_id}/source-image — HX-Trigger on success."""
+
+    def test_success_sets_hx_trigger_header(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert "HX-Trigger" in response.headers
+
+    def test_success_trigger_contains_actions_refresh(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert "actions:refresh" in response.headers.get("HX-Trigger", "")
+
+    def test_error_non_image_does_not_set_trigger(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("doc.txt", b"hello", "text/plain")},
+        )
+
+        assert "actions:refresh" not in response.headers.get("HX-Trigger", "")
+
+    def test_error_unknown_project_does_not_set_trigger(self, client):
+        response = client.post(
+            "/hx/projects/no-such-id/source-image",
+            files={"file": ("photo.png", _FAKE_PNG, "image/png")},
+        )
+
+        assert "actions:refresh" not in response.headers.get("HX-Trigger", "")
