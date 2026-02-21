@@ -1,6 +1,7 @@
 import pytest
 from app.domain.data.dmc_colors import DMC_COLORS
 from app.domain.services.color_matching import (
+    MAX_UNIQUE_COLORS,
     delta_e,
     find_nearest_dmc,
     find_nearest_dmc_batch,
@@ -165,6 +166,65 @@ class TestFindNearestDmcBatch:
         palette, grid, dmc_list = select_palette(pixels, num_colors=10)
         elapsed = time.perf_counter() - t0
         assert elapsed < 5.0, f"select_palette took {elapsed:.2f}s on 100x100 grid — too slow"
+
+
+class TestFindNearestDmcBatchChunked:
+    """Tests specific to the chunked/memory-safe implementation of find_nearest_dmc_batch."""
+
+    def test_large_unique_colors_output_length(self):
+        """Output length equals number of input pixels for large U."""
+        import numpy as np
+
+        rng = np.random.default_rng(42)
+        U = 20_000
+        rgb = rng.integers(0, 256, size=(U, 3), dtype=np.uint8)
+        result = find_nearest_dmc_batch(rgb)
+        assert result.shape == (U,)
+
+    def test_large_unique_colors_indices_in_range(self):
+        """All returned indices are valid positions in the DMC color list."""
+        import numpy as np
+
+        n_dmc = len(DMC_COLORS)
+        rng = np.random.default_rng(7)
+        U = 20_000
+        rgb = rng.integers(0, 256, size=(U, 3), dtype=np.uint8)
+        result = find_nearest_dmc_batch(rgb)
+        assert int(result.min()) >= 0
+        assert int(result.max()) < n_dmc
+
+    def test_chunked_matches_sample_of_scalar_results(self):
+        """Chunked batch result agrees with scalar find_nearest_dmc on sampled pixels."""
+        import numpy as np
+
+        rng = np.random.default_rng(99)
+        U = 5_000
+        rgb_array = rng.integers(0, 256, size=(U, 3), dtype=np.uint8)
+        batch_indices = find_nearest_dmc_batch(rgb_array)
+        dmc_list = list(DMC_COLORS.values())
+
+        # Spot-check 50 random positions
+        check_positions = rng.choice(U, size=50, replace=False)
+        for pos in check_positions:
+            r, g, b = rgb_array[pos]
+            scalar_color = find_nearest_dmc((int(r), int(g), int(b)))
+            batch_color = dmc_list[batch_indices[pos]]
+            assert batch_color.number == scalar_color.number, (
+                f"Mismatch at index {pos} rgb=({r},{g},{b}): "
+                f"scalar={scalar_color.number}, batch={batch_color.number}"
+            )
+
+    def test_guardrail_raises_for_extreme_unique_colors(self):
+        """find_nearest_dmc_batch raises DomainException when U > MAX_UNIQUE_COLORS."""
+        import numpy as np
+        from app.domain.exceptions import DomainException
+        from app.domain.services.color_matching import MAX_UNIQUE_COLORS
+
+        rng = np.random.default_rng(0)
+        too_many = MAX_UNIQUE_COLORS + 1
+        rgb = rng.integers(0, 256, size=(too_many, 3), dtype=np.uint8)
+        with pytest.raises(DomainException, match="unique colors"):
+            find_nearest_dmc_batch(rgb)
 
 
 class TestSelectPaletteFrequencyThreshold:
