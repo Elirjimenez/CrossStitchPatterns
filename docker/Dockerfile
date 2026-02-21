@@ -10,7 +10,6 @@ FROM python:3.11-slim AS builder
 
 WORKDIR /app
 
-# System deps for building wheels (psycopg2, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
@@ -31,7 +30,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ============================================================================
 FROM python:3.11-slim
 
-# Create non-root user in RUNTIME
+# Create non-root user in runtime
 RUN useradd -m -u 1000 appuser
 
 # Runtime deps
@@ -46,17 +45,13 @@ WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Create directories (note: mounts may override these at runtime, entrypoint will fix perms)
+# Create dirs (mounts may override /app/storage at runtime; entrypoint will fix perms)
 RUN mkdir -p /app/storage /app/tmp
 
-# Copy application code with correct ownership (avoid root-owned files)
+# Copy app code with non-root ownership
 COPY --chown=appuser:appuser app ./app
 COPY --chown=appuser:appuser alembic ./alembic
 COPY --chown=appuser:appuser alembic.ini .
-
-# Copy entrypoint that fixes perms on mounted storage and drops privileges
-COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
 
 # Env
 ENV PYTHONUNBUFFERED=1 \
@@ -66,12 +61,27 @@ ENV PYTHONUNBUFFERED=1 \
 
 EXPOSE 8000
 
-# Health check (requires httpx in requirements-prod.txt)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/health')"
 
-# IMPORTANT: start as root so entrypoint can chown mounted volume, then it will exec as appuser
+# ---------------------------------------------------------------------------
+# ENTRYPOINT (generated inline to avoid missing file in build context)
+# ---------------------------------------------------------------------------
+RUN cat > /entrypoint.sh <<'EOF'
+#!/bin/sh
+set -e
+
+: "${STORAGE_DIR:=/app/storage}"
+
+mkdir -p "${STORAGE_DIR}/projects"
+chown -R appuser:appuser "${STORAGE_DIR}"
+
+# Preserve args properly
+exec su -s /bin/sh appuser -c "$@"
+EOF
+RUN chmod +x /entrypoint.sh
+
+# Start as root so we can chown mounted volumes; entrypoint drops to appuser
 ENTRYPOINT ["/entrypoint.sh"]
 
-# Run migrations and start
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
