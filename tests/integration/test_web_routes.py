@@ -11,10 +11,12 @@ Covers:
 - Task 6: POST /hx/projects/{project_id}/generate  (generate pattern + PDF)
 """
 
+import io
 from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
+from PIL import Image
 from sqlalchemy import create_engine, event
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
@@ -93,6 +95,9 @@ def error_client(tmp_path):
             raise RuntimeError("DB unavailable")
 
         def update_source_image_ref(self, project_id, ref):
+            raise RuntimeError("DB unavailable")
+
+        def update_source_image_metadata(self, project_id, *, ref, width, height):
             raise RuntimeError("DB unavailable")
 
     storage = LocalFileStorage(str(tmp_path / "storage"))
@@ -494,14 +499,50 @@ class TestProjectDetailPage:
         assert f'upload-indicator-{project_id}' in response.text
         assert f'generate-loading-{project_id}' in response.text
 
+    def test_detail_page_generate_form_has_target_width_input(self, client):
+        """Generate form must have a visible target_width input."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert 'name="target_width"' in response.text
+
+    def test_detail_page_generate_form_has_target_height_input(self, client):
+        """Generate form must have a visible target_height input."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert 'name="target_height"' in response.text
+
+    def test_detail_page_generate_form_defaults_to_300(self, client):
+        """Both target_width and target_height inputs must default to 300."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        # value="300" must appear at least twice (once for width, once for height)
+        assert response.text.count('value="300"') >= 2
+
 
 # ---------------------------------------------------------------------------
 # Task 5 — POST /hx/projects/{project_id}/source-image (upload source image)
 # ---------------------------------------------------------------------------
 
-_FAKE_PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 20
-_FAKE_JPG = b"\xff\xd8\xff\xe0" + b"\x00" * 20
-_FAKE_WEBP = b"RIFF\x00\x00\x00\x00WEBP" + b"\x00" * 10
+def _make_image_bytes(fmt: str, width: int = 100, height: int = 80) -> bytes:
+    """Generate a minimal valid image in the given PIL format."""
+    img = Image.new("RGB", (width, height), color=(200, 100, 50))
+    buf = io.BytesIO()
+    img.save(buf, format=fmt)
+    return buf.getvalue()
+
+
+_FAKE_PNG = _make_image_bytes("PNG")
+_FAKE_JPG = _make_image_bytes("JPEG")
+_FAKE_WEBP = _make_image_bytes("WEBP")
 
 
 class TestHxUploadSourceImage:
@@ -676,6 +717,7 @@ class _FakeProjectRepoWithImage(ProjectRepository):
     def list_all(self): return []
     def update_status(self, project_id, status): pass
     def update_source_image_ref(self, project_id, ref): pass
+    def update_source_image_metadata(self, project_id, *, ref, width, height): pass
 
 
 class _FakeCompleteUseCase:
@@ -969,3 +1011,92 @@ class TestHxGeneratePattern:
         )
 
         assert 'id="pattern-results-card"' in response.text
+
+
+# ---------------------------------------------------------------------------
+# Task 7 — Image dimension extraction and form prefill
+# ---------------------------------------------------------------------------
+
+
+class TestImageDimensionExtraction:
+    """Source image dimensions are extracted at upload time and prefill the generate form."""
+
+    def test_corrupt_image_returns_400(self, client):
+        """Bytes that look like an image MIME type but are unreadable must be rejected."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 20, "image/png")},
+        )
+
+        assert response.status_code == 400
+
+    def test_corrupt_image_shows_error(self, client):
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", b"\x89PNG\r\n\x1a\n" + b"\x00" * 20, "image/png")},
+        )
+
+        assert "image" in response.text.lower()
+
+    def test_upload_persists_dimensions(self, client):
+        """After uploading a 100×80 image the detail page must reflect those dimensions."""
+        resp = client.post("/api/projects", json={"name": "Dim Test"})
+        project_id = resp.json()["id"]
+        png_bytes = _make_image_bytes("PNG", width=100, height=80)
+
+        client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", png_bytes, "image/png")},
+        )
+
+        detail = client.get(f"/projects/{project_id}")
+        assert 'value="100"' in detail.text
+        assert 'value="80"' in detail.text
+
+    def test_detail_page_prefills_stored_dimensions(self, client):
+        """Generate form target_width/height must use the uploaded image dimensions."""
+        resp = client.post("/api/projects", json={"name": "Prefill Test"})
+        project_id = resp.json()["id"]
+        png_bytes = _make_image_bytes("PNG", width=200, height=150)
+
+        client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", png_bytes, "image/png")},
+        )
+
+        detail = client.get(f"/projects/{project_id}")
+        assert 'value="200"' in detail.text
+        assert 'value="150"' in detail.text
+
+    def test_detail_page_clamps_large_dimensions_to_500(self, client):
+        """Dimensions larger than 500 must be clamped to 500 in the form defaults."""
+        resp = client.post("/api/projects", json={"name": "Big Image"})
+        project_id = resp.json()["id"]
+        png_bytes = _make_image_bytes("PNG", width=800, height=600)
+
+        client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("photo.png", png_bytes, "image/png")},
+        )
+
+        detail = client.get(f"/projects/{project_id}")
+        # Both should be clamped; value="800" and value="600" must NOT appear
+        assert 'value="800"' not in detail.text
+        assert 'value="600"' not in detail.text
+        assert 'value="500"' in detail.text
+
+    def test_detail_page_no_image_defaults_to_300(self, client):
+        """When no image has been uploaded the defaults remain 300×300."""
+        resp = client.post("/api/projects", json={"name": "No Image"})
+        project_id = resp.json()["id"]
+
+        detail = client.get(f"/projects/{project_id}")
+
+        # value="300" must appear at least twice (width and height)
+        assert detail.text.count('value="300"') >= 2

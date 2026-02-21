@@ -5,11 +5,13 @@ Server-rendered page routes. These return full HTML responses via Jinja2 templat
 as opposed to the JSON API routes under /api.
 """
 
+import io
 import os
 from pathlib import Path
 
 import structlog
 from fastapi import APIRouter, Depends, File, Form, Request, UploadFile
+from PIL import Image, UnidentifiedImageError
 from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
@@ -147,6 +149,10 @@ async def project_detail(
     try:
         use_case = GetProject(project_repo=repo)
         project = use_case.execute(project_id)
+        w = project.source_image_width
+        h = project.source_image_height
+        default_target_width = min(w, 500) if w else 300
+        default_target_height = min(h, 500) if h else 300
         return templates.TemplateResponse(
             request,
             "project_detail.html",
@@ -157,6 +163,8 @@ async def project_detail(
                 "created_at": project.created_at.strftime("%d %b %Y"),
                 "source_image_ref": project.source_image_ref,
                 "project_id": project.id,
+                "default_target_width": default_target_width,
+                "default_target_height": default_target_height,
             },
         )
     except ProjectNotFoundError:
@@ -242,9 +250,20 @@ async def hx_upload_source_image(
                 status_code=400,
             )
 
+        # --- Extract image dimensions (rejects corrupt/non-image data) ---
+        try:
+            with Image.open(io.BytesIO(data)) as img:
+                img_width, img_height = img.size
+        except (UnidentifiedImageError, Exception):
+            return _source_image_card(
+                request, project_id, project.source_image_ref,
+                error="The uploaded file could not be read as an image.",
+                status_code=400,
+            )
+
         _, extension = os.path.splitext(file.filename)
         ref = storage.save_source_image(project_id, data, extension)
-        repo.update_source_image_ref(project_id, ref)
+        repo.update_source_image_metadata(project_id, ref=ref, width=img_width, height=img_height)
 
         return _source_image_card(request, project_id, ref)
 
@@ -287,8 +306,8 @@ async def hx_generate_pattern(
     project_id: str,
     request: Request,
     num_colors: int = Form(default=10),
-    target_width: int = Form(default=80),
-    target_height: int = Form(default=80),
+    target_width: int = Form(default=300),
+    target_height: int = Form(default=300),
     use_case: CompleteExistingProject = Depends(get_complete_existing_project_use_case),
     repo: ProjectRepository = Depends(get_project_repository),
 ) -> HTMLResponse:

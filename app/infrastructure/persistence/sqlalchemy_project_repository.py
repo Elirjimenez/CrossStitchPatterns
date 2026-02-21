@@ -40,3 +40,14 @@ class SqlAlchemyProjectRepository(ProjectRepository):
             return
         model.source_image_ref = ref
         self._session.flush()
+
+    def update_source_image_metadata(
+        self, project_id: str, *, ref: str, width: int, height: int
+    ) -> None:
+        model = self._session.get(ProjectModel, project_id)
+        if model is None:
+            return
+        model.source_image_ref = ref
+        model.source_image_width = width
+        model.source_image_height = height
+        self._session.flush()

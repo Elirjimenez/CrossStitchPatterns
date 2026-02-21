@@ -23,6 +23,8 @@ class Project:
     status: ProjectStatus
     source_image_ref: Optional[str]
     parameters: Dict[str, Any]
+    source_image_width: Optional[int] = None
+    source_image_height: Optional[int] = None
 
     def __post_init__(self) -> None:
         if not self.name or not self.name.strip():

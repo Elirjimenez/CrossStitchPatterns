@@ -18,11 +18,43 @@
         value="10"
         min="2"
         max="100"
-        class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
+               focus:outline-none focus:ring-1 focus:ring-indigo-500" />
     </div>
 
-    <input type="hidden" name="target_width" value="80" />
-    <input type="hidden" name="target_height" value="80" />
+    <div class="mb-4">
+      <span class="block text-xs text-gray-600 mb-1">Target size (stitches)</span>
+      <div class="flex gap-2">
+        <div class="flex-1">
+          <label for="target-width-{{ pid }}" class="block text-xs text-gray-400 mb-0.5">
+            Width
+          </label>
+          <input
+            id="target-width-{{ pid }}"
+            type="number"
+            name="target_width"
+            value="{{ default_target_width }}"
+            min="10"
+            max="500"
+            class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
+                   focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+        <div class="flex-1">
+          <label for="target-height-{{ pid }}" class="block text-xs text-gray-400 mb-0.5">
+            Height
+          </label>
+          <input
+            id="target-height-{{ pid }}"
+            type="number"
+            name="target_height"
+            value="{{ default_target_height }}"
+            min="10"
+            max="500"
+            class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
+                   focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+      </div>
+    </div>
 
     <button
       id="generate-btn-{{ pid }}"
