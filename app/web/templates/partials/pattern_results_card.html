@@ -1,0 +1,67 @@
+{% set pid = project_id or id %}
+<div id="pattern-results-card" class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
+  <h3 class="text-base font-semibold text-gray-700 mb-3">Pattern &amp; Results</h3>
+
+  <!-- Loading indicator: shown during HTMX request via hx-indicator on the generate form.
+       Present in every state so re-generating after a result also shows the spinner. -->
+  <div id="generate-loading-{{ pid }}"
+       class="htmx-indicator flex items-center gap-2 text-gray-500 text-sm mb-3">
+    <svg class="animate-spin h-4 w-4 text-indigo-500 shrink-0"
+         xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle class="opacity-25" cx="12" cy="12" r="10"
+              stroke="currentColor" stroke-width="4"></circle>
+      <path class="opacity-75" fill="currentColor"
+            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.84 3 7.938l3-2.647z"></path>
+    </svg>
+    Generating pattern, please wait&hellip;
+  </div>
+
+  {% if success %}
+    <!-- Success banner -->
+    <div class="flex items-start gap-2 bg-green-50 border border-green-200 text-green-800 rounded-lg px-3 py-2 text-sm mb-4">
+      <span class="font-medium">&#10003;</span>
+      <span>Pattern generated successfully!</span>
+    </div>
+
+    <!-- Summary -->
+    <dl class="text-sm divide-y divide-gray-100 mb-5">
+      <div class="flex justify-between py-1.5">
+        <dt class="text-gray-500">Size</dt>
+        <dd class="font-medium text-gray-800">{{ result.grid_width }} &times; {{ result.grid_height }} stitches</dd>
+      </div>
+      <div class="flex justify-between py-1.5">
+        <dt class="text-gray-500">Total stitches</dt>
+        <dd class="font-medium text-gray-800">{{ result.stitch_count }}</dd>
+      </div>
+      <div class="flex justify-between py-1.5">
+        <dt class="text-gray-500">Colors</dt>
+        <dd class="font-medium text-gray-800">{{ result.num_colors }}</dd>
+      </div>
+      <div class="flex justify-between py-1.5">
+        <dt class="text-gray-500">Generated</dt>
+        <dd class="font-medium text-gray-800">{{ result.created_at }}</dd>
+      </div>
+    </dl>
+
+    {% if pdf_url %}
+      <a href="{{ pdf_url }}"
+         class="inline-flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-indigo-700 transition-colors"
+         download>
+        &#8681; Download PDF
+      </a>
+    {% endif %}
+
+  {% elif error %}
+    <!-- Error banner -->
+    <div class="flex items-start gap-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">
+      <span>&#9888;</span>
+      <span>{{ error }}</span>
+    </div>
+
+  {% else %}
+    <!-- Empty state -->
+    <div class="border-2 border-dashed border-gray-200 rounded-lg p-6 text-center text-gray-400 text-sm">
+      No pattern generated yet. Upload an image and click &ldquo;Generate Pattern + PDF&rdquo; to create your first pattern.
+    </div>
+  {% endif %}
+</div>

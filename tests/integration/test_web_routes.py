@@ -7,7 +7,11 @@ Covers:
 - Task 2: GET /hx/projects  (HTMX partial — empty, populated, error states)
 - Task 3: POST /hx/projects/create  (create project via HTMX form)
 - Task 4: GET /projects/{project_id}  (project detail page)
+- Task 5: POST /hx/projects/{project_id}/source-image  (upload source image)
+- Task 6: POST /hx/projects/{project_id}/generate  (generate pattern + PDF)
 """
+
+from datetime import datetime, timezone
 
 import pytest
 from fastapi.testclient import TestClient
@@ -17,11 +21,23 @@ from sqlalchemy.pool import StaticPool
 
 import app.infrastructure.persistence.models.pattern_result_model  # noqa: F401
 import app.infrastructure.persistence.models.project_model  # noqa: F401
+from app.application.use_cases.complete_existing_project import (
+    CompleteExistingProject,
+    CompleteExistingProjectResult,
+)
+from app.domain.exceptions import DomainException, ProjectNotFoundError
+from app.domain.model.pattern import Palette, Pattern, PatternGrid
+from app.domain.model.project import PatternResult, Project, ProjectStatus
 from app.domain.repositories.project_repository import ProjectRepository
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.storage.local_file_storage import LocalFileStorage
 from app.main import create_app
-from app.web.api.dependencies import get_db_session, get_file_storage, get_project_repository
+from app.web.api.dependencies import (
+    get_complete_existing_project_use_case,
+    get_db_session,
+    get_file_storage,
+    get_project_repository,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -450,6 +466,34 @@ class TestProjectDetailPage:
 
         assert 'id="source-image-card"' in response.text
 
+    def test_detail_page_generate_form_contains_project_id(self, client):
+        """Generate button form URL must contain the real project_id, not be empty."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert f'hx-post="/hx/projects/{project_id}/generate"' in response.text
+
+    def test_detail_page_has_no_double_slash_urls(self, client):
+        """No HTMX URL should contain // (which would mean project_id was empty)."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert "projects//" not in response.text
+
+    def test_detail_page_indicator_ids_contain_project_id(self, client):
+        """Loading indicator element IDs must contain the real project_id."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert f'upload-indicator-{project_id}' in response.text
+        assert f'generate-loading-{project_id}' in response.text
+
 
 # ---------------------------------------------------------------------------
 # Task 5 — POST /hx/projects/{project_id}/source-image (upload source image)
@@ -594,3 +638,334 @@ class TestHxUploadSourceImage:
         )
 
         assert "error" in response.text.lower()
+
+
+# ---------------------------------------------------------------------------
+# Task 6 — POST /hx/projects/{project_id}/generate (generate pattern + PDF)
+# ---------------------------------------------------------------------------
+
+_FAKE_PROJECT_WITH_IMAGE = Project(
+    id="p-test-123",
+    name="Test Project",
+    created_at=datetime(2026, 2, 21, tzinfo=timezone.utc),
+    status=ProjectStatus.COMPLETED,
+    source_image_ref="projects/p-test-123/source/img.png",
+    parameters={},
+)
+
+_FAKE_PATTERN = Pattern(
+    grid=PatternGrid(width=2, height=2, cells=[[0, 0], [0, 0]]),
+    palette=Palette(colors=[(255, 0, 0)]),
+)
+
+
+class _FakeProjectRepoWithImage(ProjectRepository):
+    """Minimal project repo that always returns a project with a source image."""
+
+    def get(self, project_id):
+        return Project(
+            id=project_id,
+            name="Test Project",
+            created_at=datetime(2026, 2, 21, tzinfo=timezone.utc),
+            status=ProjectStatus.CREATED,
+            source_image_ref="projects/p/source/img.png",
+            parameters={},
+        )
+
+    def add(self, project): pass
+    def list_all(self): return []
+    def update_status(self, project_id, status): pass
+    def update_source_image_ref(self, project_id, ref): pass
+
+
+class _FakeCompleteUseCase:
+    """Mock use case that always returns a predictable successful result."""
+
+    def execute(self, request):
+        return CompleteExistingProjectResult(
+            project=_FAKE_PROJECT_WITH_IMAGE,
+            pattern=_FAKE_PATTERN,
+            dmc_colors=[],
+            pattern_result=PatternResult(
+                id="pr-test-123",
+                project_id=request.project_id,
+                created_at=datetime(2026, 2, 21, 10, 0, 0, tzinfo=timezone.utc),
+                palette={"colors": [{"index": i} for i in range(5)]},
+                grid_width=80,
+                grid_height=60,
+                stitch_count=4800,
+                pdf_ref=f"projects/{request.project_id}/pdfs/pattern.pdf",
+            ),
+            pdf_bytes=b"%PDF-1.4 fake",
+        )
+
+
+class _BrokenGenerateUseCase:
+    """Mock use case that raises an unexpected RuntimeError."""
+
+    def execute(self, request):
+        raise RuntimeError("Internal error from use case")
+
+
+def _make_generate_client(tmp_path, use_case_instance):
+    """Helper to build a TestClient with mocked project repo + use case.
+
+    The repo always returns a project that has a source_image_ref so the
+    pre-flight validation in the route passes and we exercise the use case path.
+    """
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    event.listen(engine, "connect", lambda conn, _: conn.execute("PRAGMA foreign_keys=ON"))
+    Base.metadata.create_all(engine)
+    factory = sessionmaker(bind=engine)
+
+    def _override_session():
+        session = factory()
+        try:
+            yield session
+            session.commit()
+        except Exception:
+            session.rollback()
+            raise
+        finally:
+            session.close()
+
+    storage = LocalFileStorage(str(tmp_path / "storage"))
+    app = create_app()
+    app.dependency_overrides[get_db_session] = _override_session
+    app.dependency_overrides[get_file_storage] = lambda: storage
+    app.dependency_overrides[get_project_repository] = lambda: _FakeProjectRepoWithImage()
+    app.dependency_overrides[get_complete_existing_project_use_case] = (
+        lambda: use_case_instance
+    )
+    return TestClient(app)
+
+
+@pytest.fixture
+def generate_client(tmp_path):
+    """TestClient with mocked repo + use case that always succeeds."""
+    return _make_generate_client(tmp_path, _FakeCompleteUseCase())
+
+
+@pytest.fixture
+def broken_generate_client(tmp_path):
+    """TestClient with mocked repo + use case that raises an unexpected error."""
+    return _make_generate_client(tmp_path, _BrokenGenerateUseCase())
+
+
+class TestHxGeneratePattern:
+    """Task 6: POST /hx/projects/{project_id}/generate"""
+
+    # --- Success path ---
+
+    def test_success_returns_200(self, generate_client):
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert response.status_code == 200
+
+    def test_success_returns_html(self, generate_client):
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "text/html" in response.headers["content-type"]
+
+    def test_success_shows_pattern_dimensions(self, generate_client):
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "80" in response.text
+        assert "60" in response.text
+
+    def test_success_shows_stitch_count(self, generate_client):
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "4800" in response.text
+
+    def test_success_shows_colors_count(self, generate_client):
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "5" in response.text
+
+    def test_success_shows_pdf_download_link(self, generate_client):
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "/api/projects/files/" in response.text
+
+    def test_success_shows_success_indicator(self, generate_client):
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "success" in response.text.lower() or "generated" in response.text.lower()
+
+    def test_success_response_contains_results_card_id(self, generate_client):
+        """Response must include the swappable card ID so HTMX can update it."""
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert 'id="pattern-results-card"' in response.text
+
+    def test_default_params_accepted(self, generate_client):
+        """Route must work when only num_colors is posted (others have defaults)."""
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10"},
+        )
+
+        assert response.status_code == 200
+
+    # --- Validation: numeric parameters ---
+
+    def test_num_colors_below_min_returns_400(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "1", "target_width": "80", "target_height": "80"},
+        )
+
+        assert response.status_code == 400
+
+    def test_num_colors_below_min_shows_error(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "1", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "color" in response.text.lower()
+
+    def test_num_colors_above_max_returns_400(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "101", "target_width": "80", "target_height": "80"},
+        )
+
+        assert response.status_code == 400
+
+    def test_target_width_below_min_returns_400(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "10", "target_width": "5", "target_height": "80"},
+        )
+
+        assert response.status_code == 400
+
+    def test_target_width_above_max_returns_400(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "10", "target_width": "501", "target_height": "80"},
+        )
+
+        assert response.status_code == 400
+
+    def test_target_height_below_min_returns_400(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "5"},
+        )
+
+        assert response.status_code == 400
+
+    def test_target_height_above_max_returns_400(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "501"},
+        )
+
+        assert response.status_code == 400
+
+    def test_invalid_param_response_contains_results_card_id(self, client):
+        response = client.post(
+            "/hx/projects/any-id/generate",
+            data={"num_colors": "0", "target_width": "80", "target_height": "80"},
+        )
+
+        assert 'id="pattern-results-card"' in response.text
+
+    # --- Validation: project state ---
+
+    def test_project_not_found_returns_404(self, client):
+        """project_id that does not exist in the DB must return 404."""
+        response = client.post(
+            "/hx/projects/no-such-id/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert response.status_code == 404
+
+    def test_project_not_found_shows_error(self, client):
+        response = client.post(
+            "/hx/projects/no-such-id/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "not found" in response.text.lower()
+
+    def test_no_source_image_returns_400(self, client):
+        """Project exists but has no source_image_ref must return 400."""
+        resp = client.post("/api/projects", json={"name": "No Image"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert response.status_code == 400
+
+    def test_no_source_image_shows_message(self, client):
+        resp = client.post("/api/projects", json={"name": "No Image"})
+        project_id = resp.json()["id"]
+
+        response = client.post(
+            f"/hx/projects/{project_id}/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "image" in response.text.lower()
+
+    # --- Error: unexpected failure ---
+
+    def test_unexpected_error_returns_500(self, broken_generate_client):
+        response = broken_generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert response.status_code == 500
+
+    def test_unexpected_error_shows_error_message(self, broken_generate_client):
+        response = broken_generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert "error" in response.text.lower()
+
+    def test_unexpected_error_contains_results_card_id(self, broken_generate_client):
+        response = broken_generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80"},
+        )
+
+        assert 'id="pattern-results-card"' in response.text

@@ -1,8 +1,14 @@
+{% set pid = project_id or id %}
 <div id="source-image-card" class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
   <h3 class="text-base font-semibold text-gray-700 mb-3">Source Image</h3>
 
   <!-- Current state -->
   {% if source_image_ref %}
+    <img
+      src="/api/projects/files/{{ source_image_ref }}"
+      alt="Source image preview"
+      onerror="this.style.display='none'"
+      class="max-h-40 w-full object-contain rounded-lg border border-gray-200 mb-3" />
     <p class="text-sm text-green-700 mb-1">&#10003; Image uploaded</p>
     <p class="text-xs text-gray-400 font-mono break-all mb-4">{{ source_image_ref }}</p>
   {% else %}
@@ -19,11 +25,11 @@
 
   <!-- Upload form -->
   <form
-    hx-post="/hx/projects/{{ project_id }}/source-image"
+    hx-post="/hx/projects/{{ pid }}/source-image"
     hx-target="#source-image-card"
     hx-swap="outerHTML"
     hx-encoding="multipart/form-data"
-    hx-indicator="#upload-indicator-{{ project_id }}">
+    hx-indicator="#upload-indicator-{{ pid }}">
     <div class="flex gap-2 items-center">
       <input
         type="file"
@@ -36,7 +42,7 @@
         Upload
       </button>
     </div>
-    <p id="upload-indicator-{{ project_id }}" class="htmx-indicator text-xs text-gray-400 mt-2">
+    <p id="upload-indicator-{{ pid }}" class="htmx-indicator text-xs text-gray-400 mt-2">
       Uploading&hellip;
     </p>
   </form>
