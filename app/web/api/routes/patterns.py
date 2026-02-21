@@ -1,6 +1,6 @@
 from typing import List, Optional, Tuple
 
-from fastapi import APIRouter, Depends, Form, UploadFile
+from fastapi import APIRouter, Depends, Form, HTTPException, UploadFile
 from fastapi.responses import Response
 from pydantic import BaseModel, Field
 
@@ -16,13 +16,16 @@ from app.application.use_cases.export_pattern_to_pdf import (
     ExportPatternToPdf,
     ExportPdfRequest,
 )
+from app.config import Settings, get_settings
 from app.domain.data.dmc_colors import DmcColor
+from app.domain.exceptions import DomainException
 from app.domain.model.pattern import Palette, Pattern, PatternGrid
 from app.web.api.dependencies import (
     get_calculate_fabric_use_case,
     get_convert_image_use_case,
     get_export_pdf_use_case,
 )
+from app.web.validators import validate_generation_limits
 
 router = APIRouter()
 
@@ -121,7 +124,18 @@ async def convert_image(
     target_height: Optional[int] = Form(default=None, gt=0),
     min_frequency_pct: float = Form(default=1.0, ge=0.0, le=100.0),
     use_case: ConvertImageToPattern = Depends(get_convert_image_use_case),
+    settings: Settings = Depends(get_settings),
 ) -> ConvertResponseBody:
+    try:
+        validate_generation_limits(
+            num_colors=num_colors,
+            target_w=target_width,
+            target_h=target_height,
+            settings=settings,
+        )
+    except DomainException as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+
     image_data = await file.read()
 
     result = use_case.execute(
