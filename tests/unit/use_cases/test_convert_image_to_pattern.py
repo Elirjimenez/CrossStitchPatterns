@@ -16,7 +16,7 @@ class FakeImageResizer(ImageResizer):
     def get_image_size(self, image_bytes: bytes):
         return (10, 10)
 
-    def load_and_resize(self, image_bytes: bytes, width: int, height: int):
+    def load_and_resize(self, image_bytes: bytes, width: int, height: int, resampling: str = "lanczos"):
         # Return a deterministic pixel grid (all same color)
         return [[(128, 64, 32)] * width for _ in range(height)]
 

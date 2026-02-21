@@ -39,6 +39,7 @@ class CompleteExistingProjectRequest:
     num_strands: int = 2
     margin_cm: float = 5.0
     variant: str = "color"
+    processing_mode: str = "auto"  # "auto" | "photo" | "drawing" | "pixel_art"
 
 
 @dataclass(frozen=True)
@@ -115,6 +116,7 @@ class CompleteExistingProject:
                     num_strands=request.num_strands,
                     margin_cm=request.margin_cm,
                     variant=request.variant,
+                    processing_mode=request.processing_mode,
                 ),
                 image_resizer=self._image_resizer,
                 pdf_exporter=self._pdf_exporter,

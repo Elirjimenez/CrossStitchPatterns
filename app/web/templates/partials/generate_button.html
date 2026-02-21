@@ -56,6 +56,22 @@
       </div>
     </div>
 
+    <div class="mb-4">
+      <label for="processing-mode-{{ pid }}" class="block text-xs text-gray-600 mb-1">
+        Image type
+      </label>
+      <select
+        id="processing-mode-{{ pid }}"
+        name="processing_mode"
+        class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
+               focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+        <option value="auto">Auto-detect</option>
+        <option value="photo">Photo</option>
+        <option value="drawing">Drawing / Sketch</option>
+        <option value="pixel_art">Pixel art</option>
+      </select>
+    </div>
+
     <button
       id="generate-btn-{{ pid }}"
       type="submit"

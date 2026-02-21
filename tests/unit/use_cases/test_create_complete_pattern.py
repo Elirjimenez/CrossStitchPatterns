@@ -41,7 +41,7 @@ def mock_image_resizer():
 
     # Return a pixel grid that matches the requested dimensions
     # This will be dynamically adjusted based on the request
-    def load_and_resize_side_effect(image_data, width, height):
+    def load_and_resize_side_effect(image_data, width, height, resampling="lanczos"):
         # Create a grid of the requested size with some color variation
         return [
             [(255 if (i + j) % 2 == 0 else 0, 0, 0) for j in range(width)] for i in range(height)
@@ -130,7 +130,14 @@ class TestCreateCompletePattern:
 
         use_case.execute(request)
 
-        mock_image_resizer.load_and_resize.assert_called_once_with(b"image-bytes", 20, 15)
+        # The resizer is called twice: thumbnail for mode detection + actual resize.
+        # Verify the final (second) call used the requested dimensions.
+        calls = mock_image_resizer.load_and_resize.call_args_list
+        assert len(calls) == 2
+        final_args = calls[1][0]
+        assert final_args[0] == b"image-bytes"
+        assert final_args[1] == 20
+        assert final_args[2] == 15
 
     def test_exports_pattern_to_pdf(self, use_case, mock_pdf_exporter):
         """The use case should export the pattern to PDF."""
