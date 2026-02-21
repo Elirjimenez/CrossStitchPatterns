@@ -277,7 +277,9 @@ async def hx_upload_source_image(
         ref = storage.save_source_image(project_id, data, extension)
         repo.update_source_image_metadata(project_id, ref=ref, width=img_width, height=img_height)
 
-        return _source_image_card(request, project_id, ref)
+        response = _source_image_card(request, project_id, ref)
+        response.headers["HX-Trigger"] = "actions:refresh"
+        return response
 
     except Exception as exc:
         logger.error("hx_upload_source_image_failed", project_id=project_id, error=str(exc), exc_info=True)
@@ -286,6 +288,48 @@ async def hx_upload_source_image(
             error="An unexpected error occurred. Please try again.",
             status_code=500,
         )
+
+
+def _actions_context(project) -> dict:
+    """Compute the template context for the project_actions partial."""
+    w = project.source_image_width
+    h = project.source_image_height
+    default_target_width = min(w, 500) if w else 300
+    default_target_height = min(h, 500) if h else 300
+    return {
+        "project_id": project.id,
+        "source_image_ref": project.source_image_ref,
+        "default_target_width": default_target_width,
+        "default_target_height": default_target_height,
+    }
+
+
+@router.get("/hx/projects/{project_id}/actions", response_class=HTMLResponse)
+async def hx_project_actions(
+    project_id: str,
+    request: Request,
+    repo: ProjectRepository = Depends(get_project_repository),
+) -> HTMLResponse:
+    """
+    HTMX partial endpoint: render the Actions panel for a project.
+
+    Fetches fresh project state so that source_image_ref and image dimensions
+    are always up-to-date. Called on initial page load and whenever the
+    'actions:refresh' event fires (e.g. after a successful image upload).
+    """
+    project = repo.get(project_id)
+    if project is None:
+        return templates.TemplateResponse(
+            request,
+            "partials/flash.html",
+            {"success": False, "message": f"Project '{project_id}' not found."},
+            status_code=404,
+        )
+    return templates.TemplateResponse(
+        request,
+        "partials/project_actions.html",
+        _actions_context(project),
+    )
 
 
 def _pattern_results_card(
