@@ -1,33 +1,28 @@
 # Multi-stage Dockerfile for Cross-Stitch Pattern Generator
 #
-# Stage 1: Builder - Install dependencies and prepare the environment
-# Stage 2: Runtime - Minimal production image
+# Stage 1: Builder - Install dependencies into a venv
+# Stage 2: Runtime - Minimal production image (non-root)
 
 # ============================================================================
 # BUILDER STAGE
 # ============================================================================
-FROM python:3.11-slim as builder
+FROM python:3.11-slim AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Install system dependencies required for building Python packages
+# System deps for building wheels (psycopg2, etc.)
 RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     g++ \
-    postgresql-client \
     libpq-dev \
+    postgresql-client \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy production requirements file only
 COPY requirements-prod.txt .
 
-# Install Python dependencies in a virtual environment
-# This allows us to copy only the venv to the runtime stage
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install production dependencies only (no testing/linting tools)
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements-prod.txt
 
@@ -36,45 +31,48 @@ RUN pip install --no-cache-dir --upgrade pip && \
 # ============================================================================
 FROM python:3.11-slim
 
-# Install runtime system dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    postgresql-client \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Create non-root user for security
+# Create non-root user in RUNTIME (important!)
+# Use a fixed UID to avoid surprises in some platforms
 RUN useradd -m -u 1000 appuser
 
-# Set working directory
+# Runtime deps:
+# - libpq5 is the runtime library (libpq-dev is for compiling, not needed here)
+# - postgresql-client only if you actually need psql inside container (optional)
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libpq5 \
+    postgresql-client \
+    && rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
 
-# Copy virtual environment from builder stage
+# Copy venv from builder
 COPY --from=builder /opt/venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Copy application code
-COPY app ./app
-COPY alembic ./alembic
-COPY alembic.ini .
+# Create writable dirs BEFORE switching user
+# /tmp is usually writable, but we make it explicit
+RUN mkdir -p /app/storage /app/tmp && \
+    chown -R appuser:appuser /app
 
-# Create storage directory
-RUN mkdir -p /app/storage && chown -R appuser:appuser /app/storage
+# Copy application code with correct ownership (avoid root-owned files)
+COPY --chown=appuser:appuser app ./app
+COPY --chown=appuser:appuser alembic ./alembic
+COPY --chown=appuser:appuser alembic.ini .
 
-# Switch to non-root user
-# USER appuser
+# Env
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    STORAGE_DIR=/app/storage \
+    TMPDIR=/app/tmp
 
-# Expose port
+# Switch to non-root user (the security fix)
+USER appuser
+
 EXPOSE 8000
 
-# Health check
+# Health check (requires httpx in requirements-prod.txt)
 HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
     CMD python -c "import httpx; httpx.get('http://localhost:8000/health')"
 
-# Set environment variables
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    DATABASE_URL=${DATABASE_URL} \
-    STORAGE_DIR=/app/storage
-
-# Run database migrations and start the application
+# Run migrations and start
 CMD ["sh", "-c", "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000"]
