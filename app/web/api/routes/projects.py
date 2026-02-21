@@ -19,7 +19,8 @@ from app.application.use_cases.save_pattern_result import (
     SavePatternResult,
     SavePatternResultRequest,
 )
-from app.domain.exceptions import ProjectNotFoundError
+from app.config import Settings, get_settings
+from app.domain.exceptions import DomainException, ProjectNotFoundError
 from app.domain.model.project import ProjectStatus
 from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
@@ -29,6 +30,7 @@ from app.web.api.dependencies import (
     get_pattern_result_repository,
     get_project_repository,
 )
+from app.web.validators import validate_generation_limits
 
 router = APIRouter()
 
@@ -254,6 +256,7 @@ async def create_complete_pattern(
     margin_cm: float = Form(default=5.0, ge=0),
     variant: str = Form(default="color", pattern="^(color|bw)$"),
     use_case: CreateCompletePattern = Depends(get_create_complete_pattern_use_case),
+    settings: Settings = Depends(get_settings),
 ):
     """
     Complete end-to-end workflow: create project, upload image, generate pattern,
@@ -265,6 +268,16 @@ async def create_complete_pattern(
     All operations are performed in a single transaction.
     If any step fails, the entire operation is rolled back.
     """
+    try:
+        validate_generation_limits(
+            num_colors=num_colors,
+            target_w=target_width,
+            target_h=target_height,
+            settings=settings,
+        )
+    except DomainException as exc:
+        raise HTTPException(status_code=413, detail=str(exc))
+
     image_data = await file.read()
 
     request = CreateCompletePatternRequest(

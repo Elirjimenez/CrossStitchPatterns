@@ -23,6 +23,7 @@ from app.application.use_cases.complete_existing_project import (
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
 from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
+from app.config import Settings, get_settings
 from app.domain.exceptions import DomainException, ProjectNotFoundError
 from app.domain.repositories.project_repository import ProjectRepository
 from app.web.api.dependencies import (
@@ -30,6 +31,7 @@ from app.web.api.dependencies import (
     get_file_storage,
     get_project_repository,
 )
+from app.web.validators import validate_generation_limits
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
@@ -144,6 +146,7 @@ async def project_detail(
     project_id: str,
     request: Request,
     repo: ProjectRepository = Depends(get_project_repository),
+    settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
     """Render the project detail page."""
     try:
@@ -151,8 +154,14 @@ async def project_detail(
         project = use_case.execute(project_id)
         w = project.source_image_width
         h = project.source_image_height
-        default_target_width = min(w, 500) if w else 300
-        default_target_height = min(h, 500) if h else 300
+        default_target_width = min(w, settings.max_target_width) if w else min(300, settings.max_target_width)
+        default_target_height = min(h, settings.max_target_height) if h else min(300, settings.max_target_height)
+        # Cap pixel product if it exceeds the pixel limit (scale proportionally)
+        if default_target_width * default_target_height > settings.max_target_pixels:
+            import math
+            ratio = math.sqrt(settings.max_target_pixels / (default_target_width * default_target_height))
+            default_target_width = max(10, int(default_target_width * ratio))
+            default_target_height = max(10, int(default_target_height * ratio))
         return templates.TemplateResponse(
             request,
             "project_detail.html",
@@ -165,6 +174,9 @@ async def project_detail(
                 "project_id": project.id,
                 "default_target_width": default_target_width,
                 "default_target_height": default_target_height,
+                "max_colors": settings.max_colors,
+                "max_target_width": settings.max_target_width,
+                "max_target_height": settings.max_target_height,
             },
         )
     except ProjectNotFoundError:
@@ -310,6 +322,7 @@ async def hx_generate_pattern(
     target_height: int = Form(default=300),
     use_case: CompleteExistingProject = Depends(get_complete_existing_project_use_case),
     repo: ProjectRepository = Depends(get_project_repository),
+    settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
     """
     HTMX partial endpoint: generate a cross-stitch pattern + PDF for an existing project.
@@ -317,26 +330,19 @@ async def hx_generate_pattern(
     Validates numeric parameters and project state before calling the use case,
     then returns the pattern-results-card partial (HTMX outerHTML swap).
     """
-    # --- Validate numeric parameters ---
-    if not (2 <= num_colors <= 100):
-        return _pattern_results_card(
-            request, project_id,
-            success=False,
-            error="Number of colors must be between 2 and 100.",
-            status_code=400,
+    # --- Validate numeric parameters against configured safety limits ---
+    try:
+        validate_generation_limits(
+            num_colors=num_colors,
+            target_w=target_width,
+            target_h=target_height,
+            settings=settings,
         )
-    if not (10 <= target_width <= 500):
+    except DomainException as exc:
         return _pattern_results_card(
             request, project_id,
             success=False,
-            error="Target width must be between 10 and 500 stitches.",
-            status_code=400,
-        )
-    if not (10 <= target_height <= 500):
-        return _pattern_results_card(
-            request, project_id,
-            success=False,
-            error="Target height must be between 10 and 500 stitches.",
+            error=str(exc),
             status_code=400,
         )
 
