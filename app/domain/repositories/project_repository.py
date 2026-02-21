@@ -31,3 +31,7 @@ class ProjectRepository(ABC):
         self, project_id: str, *, ref: str, width: int, height: int
     ) -> None:
         pass
+
+    @abstractmethod
+    def delete(self, project_id: str) -> None:
+        pass

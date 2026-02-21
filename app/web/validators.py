@@ -19,16 +19,25 @@ def validate_generation_limits(
     Raises:
         DomainException: with a user-friendly message for any violated limit.
     """
+    if num_colors < 2:
+        raise DomainException("Number of colors must be at least 2.")
+
     if num_colors > settings.max_colors:
         raise DomainException(
             f"Number of colors {num_colors} exceeds the maximum of {settings.max_colors}."
         )
+
+    if target_w is not None and target_w < 10:
+        raise DomainException("Target width must be at least 10 stitches.")
 
     if target_w is not None and target_w > settings.max_target_width:
         raise DomainException(
             f"Target width {target_w} exceeds the maximum of "
             f"{settings.max_target_width} stitches."
         )
+
+    if target_h is not None and target_h < 10:
+        raise DomainException("Target height must be at least 10 stitches.")
 
     if target_h is not None and target_h > settings.max_target_height:
         raise DomainException(

@@ -17,3 +17,7 @@ class PatternResultRepository(ABC):
     @abstractmethod
     def get_latest_by_project(self, project_id: str) -> Optional[PatternResult]:
         pass
+
+    @abstractmethod
+    def delete_by_project(self, project_id: str) -> None:
+        pass

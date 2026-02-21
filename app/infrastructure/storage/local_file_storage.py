@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import re
+import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -174,6 +175,12 @@ class LocalFileStorage:
         if not sanitized:
             raise ValueError("Invalid project_id: cannot be empty after sanitization")
         return sanitized
+
+    def delete_project_folder(self, project_id: str) -> None:
+        """Delete the project's storage directory (no-op if it doesn't exist)."""
+        safe_project_id = self._sanitize_project_id(project_id)
+        project_dir = self._base_dir / "projects" / safe_project_id
+        shutil.rmtree(project_dir, ignore_errors=True)
 
     def _ensure_project_dir(self, project_id: str) -> Path:
         safe_project_id = self._sanitize_project_id(project_id)

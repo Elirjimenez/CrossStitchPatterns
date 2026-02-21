@@ -30,6 +30,7 @@ from app.application.use_cases.complete_existing_project import (
 from app.domain.exceptions import DomainException, ProjectNotFoundError
 from app.domain.model.pattern import Palette, Pattern, PatternGrid
 from app.domain.model.project import PatternResult, Project, ProjectStatus
+from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
 from app.infrastructure.persistence.database import Base
 from app.infrastructure.storage.local_file_storage import LocalFileStorage
@@ -38,6 +39,7 @@ from app.web.api.dependencies import (
     get_complete_existing_project_use_case,
     get_db_session,
     get_file_storage,
+    get_pattern_result_repository,
     get_project_repository,
 )
 
@@ -98,6 +100,9 @@ def error_client(tmp_path):
             raise RuntimeError("DB unavailable")
 
         def update_source_image_metadata(self, project_id, *, ref, width, height):
+            raise RuntimeError("DB unavailable")
+
+        def delete(self, project_id):
             raise RuntimeError("DB unavailable")
 
     storage = LocalFileStorage(str(tmp_path / "storage"))
@@ -689,6 +694,7 @@ class _FakeProjectRepoWithImage(ProjectRepository):
     def update_status(self, project_id, status): pass
     def update_source_image_ref(self, project_id, ref): pass
     def update_source_image_metadata(self, project_id, *, ref, width, height): pass
+    def delete(self, project_id): pass
 
 
 class _FakeCompleteUseCase:
@@ -1237,3 +1243,108 @@ class TestUploadActionsRefreshTrigger:
         )
 
         assert "actions:refresh" not in response.headers.get("HX-Trigger", "")
+
+
+# ---------------------------------------------------------------------------
+# Delete Project — DELETE /hx/projects/{project_id}
+# ---------------------------------------------------------------------------
+
+
+class _InProgressProjectRepo(ProjectRepository):
+    """Returns a project with IN_PROGRESS status for any ID (simulate mid-generation)."""
+
+    def get(self, project_id):
+        return Project(
+            id=project_id,
+            name="Busy Project",
+            created_at=datetime(2026, 2, 1, tzinfo=timezone.utc),
+            status=ProjectStatus.IN_PROGRESS,
+            source_image_ref=None,
+            parameters={},
+        )
+
+    def add(self, project): pass
+    def list_all(self): return []
+    def update_status(self, project_id, status): pass
+    def update_source_image_ref(self, project_id, ref): pass
+    def update_source_image_metadata(self, project_id, *, ref, width, height): pass
+    def delete(self, project_id): pass
+
+
+class _NoOpPatternResultRepo(PatternResultRepository):
+    def add(self, pattern_result): pass
+    def list_by_project(self, project_id): return []
+    def get_latest_by_project(self, project_id): return None
+    def delete_by_project(self, project_id): pass
+
+
+@pytest.fixture
+def in_progress_delete_client(tmp_path):
+    """TestClient whose project repo always returns an IN_PROGRESS project."""
+    storage = LocalFileStorage(str(tmp_path / "storage"))
+    app = create_app()
+    app.dependency_overrides[get_project_repository] = lambda: _InProgressProjectRepo()
+    app.dependency_overrides[get_pattern_result_repository] = lambda: _NoOpPatternResultRepo()
+    app.dependency_overrides[get_file_storage] = lambda: storage
+    return TestClient(app)
+
+
+class TestHxDeleteProject:
+    """DELETE /hx/projects/{project_id}"""
+
+    def test_delete_existing_project_returns_hx_redirect(self, client):
+        resp = client.post("/api/projects", json={"name": "ToDelete"})
+        project_id = resp.json()["id"]
+
+        response = client.delete(f"/hx/projects/{project_id}")
+
+        assert response.status_code == 200
+        assert response.headers.get("HX-Redirect") == "/projects"
+
+    def test_delete_existing_project_removes_from_db(self, client):
+        resp = client.post("/api/projects", json={"name": "ToDelete"})
+        project_id = resp.json()["id"]
+
+        client.delete(f"/hx/projects/{project_id}")
+
+        detail = client.get(f"/projects/{project_id}")
+        assert detail.status_code == 404
+
+    def test_delete_nonexistent_returns_404(self, client):
+        response = client.delete("/hx/projects/no-such-id")
+
+        assert response.status_code == 404
+
+    def test_delete_nonexistent_shows_error(self, client):
+        response = client.delete("/hx/projects/no-such-id")
+
+        assert "not found" in response.text.lower()
+
+    def test_delete_in_progress_returns_409(self, in_progress_delete_client):
+        response = in_progress_delete_client.delete("/hx/projects/any-id")
+
+        assert response.status_code == 409
+
+    def test_delete_in_progress_shows_message(self, in_progress_delete_client):
+        response = in_progress_delete_client.delete("/hx/projects/any-id")
+
+        text = response.text.lower()
+        assert "progress" in text or "processing" in text or "processed" in text
+
+    def test_delete_button_present_in_detail_page(self, client):
+        resp = client.post("/api/projects", json={"name": "HasButton"})
+        project_id = resp.json()["id"]
+
+        detail = client.get(f"/projects/{project_id}")
+
+        assert f'hx-delete="/hx/projects/{project_id}"' in detail.text
+
+    def test_delete_also_removes_pattern_results(self, client):
+        """Pattern results for the project must be gone after deletion."""
+        resp = client.post("/api/projects", json={"name": "WithResults"})
+        project_id = resp.json()["id"]
+
+        client.delete(f"/hx/projects/{project_id}")
+
+        # Project is gone — detail page must return 404
+        assert client.get(f"/projects/{project_id}").status_code == 404

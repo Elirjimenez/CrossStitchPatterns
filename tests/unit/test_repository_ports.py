@@ -18,12 +18,12 @@ def test_pattern_result_repository_is_abstract():
 
 
 def test_project_repository_has_required_methods():
-    methods = {"add", "get", "list_all", "update_status"}
+    methods = {"add", "get", "list_all", "update_status", "delete"}
     abstract_methods = ProjectRepository.__abstractmethods__
     assert methods.issubset(abstract_methods)
 
 
 def test_pattern_result_repository_has_required_methods():
-    methods = {"add", "list_by_project", "get_latest_by_project"}
+    methods = {"add", "list_by_project", "get_latest_by_project", "delete_by_project"}
     abstract_methods = PatternResultRepository.__abstractmethods__
     assert methods.issubset(abstract_methods)

@@ -25,10 +25,13 @@ from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
 from app.config import Settings, get_settings
 from app.domain.exceptions import DomainException, ProjectNotFoundError
+from app.domain.model.project import ProjectStatus
+from app.domain.repositories.pattern_result_repository import PatternResultRepository
 from app.domain.repositories.project_repository import ProjectRepository
 from app.web.api.dependencies import (
     get_complete_existing_project_use_case,
     get_file_storage,
+    get_pattern_result_repository,
     get_project_repository,
 )
 from app.web.validators import validate_generation_limits
@@ -461,3 +464,53 @@ async def hx_generate_pattern(
             error="An unexpected error occurred. Please try again.",
             status_code=500,
         )
+
+
+@router.delete("/hx/projects/{project_id}", response_class=HTMLResponse)
+async def hx_delete_project(
+    project_id: str,
+    request: Request,
+    project_repo: ProjectRepository = Depends(get_project_repository),
+    pattern_result_repo: PatternResultRepository = Depends(get_pattern_result_repository),
+    storage: FileStorage = Depends(get_file_storage),
+) -> HTMLResponse:
+    """
+    HTMX endpoint: permanently delete a project and all its data.
+
+    Returns HX-Redirect to /projects on success so HTMX navigates back
+    to the project list.
+    """
+    project = project_repo.get(project_id)
+
+    if project is None:
+        return templates.TemplateResponse(
+            request,
+            "partials/flash.html",
+            {"success": False, "message": f"Project '{project_id}' not found."},
+            status_code=404,
+        )
+
+    if project.status == ProjectStatus.IN_PROGRESS:
+        return templates.TemplateResponse(
+            request,
+            "partials/flash.html",
+            {
+                "success": False,
+                "message": "Cannot delete a project while it is being processed.",
+            },
+            status_code=409,
+        )
+
+    # Delete DB records (pattern results first, then project)
+    pattern_result_repo.delete_by_project(project_id)
+    project_repo.delete(project_id)
+
+    # Remove storage folder (best-effort — warn but don't fail)
+    try:
+        storage.delete_project_folder(project_id)
+    except Exception as exc:
+        logger.warning("delete_project_folder_failed", project_id=project_id, error=str(exc))
+
+    response = HTMLResponse("", status_code=200)
+    response.headers["HX-Redirect"] = "/projects"
+    return response

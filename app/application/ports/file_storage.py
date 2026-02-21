@@ -41,3 +41,11 @@ class FileStorage(Protocol):
         Security: MUST prevent directory traversal attacks.
         """
         ...
+
+    def delete_project_folder(self, project_id: str) -> None:
+        """Delete all stored files for a project.
+
+        Removes the project's storage directory and all its contents.
+        Must be a no-op (not raise) if the folder does not exist.
+        """
+        ...
