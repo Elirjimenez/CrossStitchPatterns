@@ -1,0 +1,41 @@
+{% set pid = project_id or id %}
+<div id="generate-section">
+  <form
+    hx-post="/hx/projects/{{ pid }}/generate"
+    hx-target="#pattern-results-card"
+    hx-swap="outerHTML"
+    hx-indicator="#generate-loading-{{ pid }}"
+    hx-disabled-elt="#generate-btn-{{ pid }}">
+
+    <div class="mb-3">
+      <label for="num-colors-{{ pid }}" class="block text-xs text-gray-600 mb-1">
+        Number of colors
+      </label>
+      <input
+        id="num-colors-{{ pid }}"
+        type="number"
+        name="num_colors"
+        value="10"
+        min="2"
+        max="100"
+        class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5 focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+    </div>
+
+    <input type="hidden" name="target_width" value="80" />
+    <input type="hidden" name="target_height" value="80" />
+
+    <button
+      id="generate-btn-{{ pid }}"
+      type="submit"
+      {% if not source_image_ref %}disabled{% endif %}
+      class="w-full px-4 py-2 rounded-lg text-sm font-medium transition-colors
+             {% if source_image_ref %}bg-indigo-600 text-white hover:bg-indigo-700
+             {% else %}bg-gray-200 text-gray-400 cursor-not-allowed{% endif %}">
+      Generate Pattern + PDF
+    </button>
+
+    {% if not source_image_ref %}
+      <p class="text-xs text-amber-600 mt-1">Upload a source image first.</p>
+    {% endif %}
+  </form>
+</div>

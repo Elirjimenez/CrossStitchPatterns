@@ -14,12 +14,20 @@ from fastapi.responses import HTMLResponse
 from fastapi.templating import Jinja2Templates
 
 from app.application.ports.file_storage import FileStorage
+from app.application.use_cases.complete_existing_project import (
+    CompleteExistingProject,
+    CompleteExistingProjectRequest,
+)
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
 from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
 from app.domain.exceptions import DomainException, ProjectNotFoundError
 from app.domain.repositories.project_repository import ProjectRepository
-from app.web.api.dependencies import get_file_storage, get_project_repository
+from app.web.api.dependencies import (
+    get_complete_existing_project_use_case,
+    get_file_storage,
+    get_project_repository,
+)
 
 router = APIRouter()
 logger = structlog.get_logger(__name__)
@@ -244,6 +252,143 @@ async def hx_upload_source_image(
         logger.error("hx_upload_source_image_failed", project_id=project_id, error=str(exc), exc_info=True)
         return _source_image_card(
             request, project_id, None,
+            error="An unexpected error occurred. Please try again.",
+            status_code=500,
+        )
+
+
+def _pattern_results_card(
+    request: Request,
+    project_id: str,
+    *,
+    success: bool | None = None,
+    result: dict | None = None,
+    pdf_url: str | None = None,
+    error: str | None = None,
+    status_code: int = 200,
+) -> HTMLResponse:
+    """Helper: render the pattern-results-card partial."""
+    return templates.TemplateResponse(
+        request,
+        "partials/pattern_results_card.html",
+        {
+            "project_id": project_id,
+            "success": success,
+            "result": result,
+            "pdf_url": pdf_url,
+            "error": error,
+        },
+        status_code=status_code,
+    )
+
+
+@router.post("/hx/projects/{project_id}/generate", response_class=HTMLResponse)
+async def hx_generate_pattern(
+    project_id: str,
+    request: Request,
+    num_colors: int = Form(default=10),
+    target_width: int = Form(default=80),
+    target_height: int = Form(default=80),
+    use_case: CompleteExistingProject = Depends(get_complete_existing_project_use_case),
+    repo: ProjectRepository = Depends(get_project_repository),
+) -> HTMLResponse:
+    """
+    HTMX partial endpoint: generate a cross-stitch pattern + PDF for an existing project.
+
+    Validates numeric parameters and project state before calling the use case,
+    then returns the pattern-results-card partial (HTMX outerHTML swap).
+    """
+    # --- Validate numeric parameters ---
+    if not (2 <= num_colors <= 100):
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
+            error="Number of colors must be between 2 and 100.",
+            status_code=400,
+        )
+    if not (10 <= target_width <= 500):
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
+            error="Target width must be between 10 and 500 stitches.",
+            status_code=400,
+        )
+    if not (10 <= target_height <= 500):
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
+            error="Target height must be between 10 and 500 stitches.",
+            status_code=400,
+        )
+
+    # --- Pre-flight: verify project exists and has a source image ---
+    try:
+        project = repo.get(project_id)
+    except Exception as exc:
+        logger.error("hx_generate_pattern_repo_failed", project_id=project_id, error=str(exc), exc_info=True)
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
+            error="An unexpected error occurred. Please try again.",
+            status_code=500,
+        )
+
+    if project is None:
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
+            error=f"Project '{project_id}' not found.",
+            status_code=404,
+        )
+    if not project.source_image_ref:
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
+            error="Please upload a source image before generating a pattern.",
+            status_code=400,
+        )
+
+    # --- Run the use case ---
+    try:
+        result = use_case.execute(
+            CompleteExistingProjectRequest(
+                project_id=project_id,
+                num_colors=num_colors,
+                target_width=target_width,
+                target_height=target_height,
+            )
+        )
+        pr = result.pattern_result
+        num_palette_colors = len(pr.palette.get("colors", []))
+        pdf_url = f"/api/projects/files/{pr.pdf_ref}" if pr.pdf_ref else None
+
+        return _pattern_results_card(
+            request,
+            project_id,
+            success=True,
+            result={
+                "grid_width": pr.grid_width,
+                "grid_height": pr.grid_height,
+                "stitch_count": pr.stitch_count,
+                "num_colors": num_palette_colors,
+                "created_at": pr.created_at.strftime("%d %b %Y %H:%M"),
+            },
+            pdf_url=pdf_url,
+        )
+
+    except DomainException as exc:
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
+            error=str(exc),
+            status_code=400,
+        )
+
+    except Exception as exc:
+        logger.error("hx_generate_pattern_failed", project_id=project_id, error=str(exc), exc_info=True)
+        return _pattern_results_card(
+            request, project_id,
+            success=False,
             error="An unexpected error occurred. Please try again.",
             status_code=500,
         )

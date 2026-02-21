@@ -11,6 +11,7 @@ from app.application.use_cases.calculate_fabric_requirements import (
     CalculateFabricRequirements,
 )
 from app.application.use_cases.convert_image_to_pattern import ConvertImageToPattern
+from app.application.use_cases.complete_existing_project import CompleteExistingProject
 from app.application.use_cases.create_complete_pattern import CreateCompletePattern
 from app.application.use_cases.export_pattern_to_pdf import ExportPatternToPdf
 from app.config import get_settings
@@ -114,6 +115,23 @@ def get_create_complete_pattern_use_case(
 ) -> CreateCompletePattern:
     """Dependency for CreateCompletePattern orchestrating use case."""
     return CreateCompletePattern(
+        project_repo=project_repo,
+        pattern_result_repo=pattern_result_repo,
+        file_storage=file_storage,
+        image_resizer=image_resizer,
+        pdf_exporter=pdf_exporter,
+    )
+
+
+def get_complete_existing_project_use_case(
+    project_repo: ProjectRepository = Depends(get_project_repository),
+    pattern_result_repo: PatternResultRepository = Depends(get_pattern_result_repository),
+    file_storage: FileStorage = Depends(get_file_storage),
+    image_resizer: ImageResizer = Depends(get_image_resizer),
+    pdf_exporter: PatternPdfExporter = Depends(get_pdf_exporter),
+) -> CompleteExistingProject:
+    """Dependency for CompleteExistingProject use case (generate pattern for existing project)."""
+    return CompleteExistingProject(
         project_repo=project_repo,
         pattern_result_repo=pattern_result_repo,
         file_storage=file_storage,
