@@ -15,7 +15,20 @@ from typing import List, Optional, Tuple
 import numpy as np
 
 from app.domain.data.dmc_colors import DMC_COLORS, DmcColor
+from app.domain.exceptions import DomainException
 from app.domain.model.pattern import Palette, RGB
+
+# ---------------------------------------------------------------------------
+# Tuneable constants (module-level)
+# ---------------------------------------------------------------------------
+
+#: Pixels are processed in this many rows at a time to cap peak memory.
+#: At 1024 rows × ~450 DMC colors × 3 channels × 4 bytes ≈ 5.5 MB per chunk.
+_BATCH_SIZE: int = 1024
+
+#: Hard upper limit on unique colors passed to find_nearest_dmc_batch.
+#: Images exceeding this are rejected before allocating any large arrays.
+MAX_UNIQUE_COLORS: int = 500_000
 
 # ---------------------------------------------------------------------------
 # Module-level caches
@@ -167,20 +180,43 @@ def _rgb_array_to_lab(rgb: np.ndarray) -> np.ndarray:
 def find_nearest_dmc_batch(rgb_pixels: np.ndarray) -> np.ndarray:
     """Return the index into DMC_COLORS (ordered list) nearest to each pixel.
 
+    Processes pixels in chunks of _BATCH_SIZE to avoid allocating the full
+    (N, N_dmc, 3) broadcast array at once, which causes OOM for large N.
+
     Args:
         rgb_pixels: uint8 array of shape (N, 3)
 
     Returns:
         int64 array of shape (N,) — index into list(DMC_COLORS.values())
+
+    Raises:
+        DomainException: if N exceeds MAX_UNIQUE_COLORS.
     """
-    _, dmc_labs = _get_dmc_numpy_cache()  # (N_dmc, 3)
-    pixel_labs = _rgb_array_to_lab(rgb_pixels)  # (N, 3)
+    n = rgb_pixels.shape[0]
+    if n > MAX_UNIQUE_COLORS:
+        raise DomainException(
+            f"Too many unique colors ({n}). "
+            f"Maximum supported is {MAX_UNIQUE_COLORS}. "
+            "Reduce image size or number of colors before matching."
+        )
 
-    # Squared Delta E: (N, N_dmc) via broadcasting
-    diff = pixel_labs[:, np.newaxis, :] - dmc_labs[np.newaxis, :, :]  # (N, N_dmc, 3)
-    dist_sq = np.sum(diff ** 2, axis=2)  # (N, N_dmc)
+    _, dmc_labs = _get_dmc_numpy_cache()  # (N_dmc, 3) float64
+    # Use float32 to halve the memory footprint of each chunk
+    dmc_labs_f32 = dmc_labs.astype(np.float32)  # (N_dmc, 3)
 
-    return np.argmin(dist_sq, axis=1)  # (N,)
+    pixel_labs = _rgb_array_to_lab(rgb_pixels).astype(np.float32)  # (N, 3)
+
+    result = np.empty(n, dtype=np.int64)
+
+    for start in range(0, n, _BATCH_SIZE):
+        end = min(start + _BATCH_SIZE, n)
+        chunk = pixel_labs[start:end]  # (chunk_size, 3)
+        # (chunk_size, N_dmc, 3) — only this chunk is broadcast, not the whole array
+        diff = chunk[:, np.newaxis, :] - dmc_labs_f32[np.newaxis, :, :]
+        dist_sq = np.sum(diff ** 2, axis=2)  # (chunk_size, N_dmc)
+        result[start:end] = np.argmin(dist_sq, axis=1)
+
+    return result
 
 
 # ---------------------------------------------------------------------------
