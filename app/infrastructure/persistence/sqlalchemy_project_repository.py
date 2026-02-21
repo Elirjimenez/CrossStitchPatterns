@@ -51,3 +51,10 @@ class SqlAlchemyProjectRepository(ProjectRepository):
         model.source_image_width = width
         model.source_image_height = height
         self._session.flush()
+
+    def delete(self, project_id: str) -> None:
+        model = self._session.get(ProjectModel, project_id)
+        if model is None:
+            return
+        self._session.delete(model)
+        self._session.flush()

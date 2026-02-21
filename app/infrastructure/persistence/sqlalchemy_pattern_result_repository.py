@@ -36,3 +36,9 @@ class SqlAlchemyPatternResultRepository(PatternResultRepository):
         if model is None:
             return None
         return PatternResultMapper.to_domain(model)
+
+    def delete_by_project(self, project_id: str) -> None:
+        self._session.query(PatternResultModel).filter(
+            PatternResultModel.project_id == project_id
+        ).delete(synchronize_session=False)
+        self._session.flush()

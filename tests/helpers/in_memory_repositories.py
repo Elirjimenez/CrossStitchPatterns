@@ -69,6 +69,9 @@ class InMemoryProjectRepository(ProjectRepository):
         )
         self._store[project_id] = updated
 
+    def delete(self, project_id: str) -> None:
+        self._store.pop(project_id, None)
+
 
 class InMemoryPatternResultRepository(PatternResultRepository):
     def __init__(self) -> None:
@@ -85,3 +88,6 @@ class InMemoryPatternResultRepository(PatternResultRepository):
         if not matches:
             return None
         return max(matches, key=lambda pr: pr.created_at)
+
+    def delete_by_project(self, project_id: str) -> None:
+        self._store = [pr for pr in self._store if pr.project_id != project_id]

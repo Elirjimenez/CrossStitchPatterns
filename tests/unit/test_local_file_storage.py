@@ -91,6 +91,33 @@ class TestReadSourceImage:
             storage.read_source_image("proj-1", "../../../etc/passwd")
 
 
+class TestDeleteProjectFolder:
+    def test_deletes_existing_folder(self, storage, base_dir):
+        storage.save_source_image("proj-del", b"data", ".png")
+        project_dir = base_dir / "projects" / "proj-del"
+        assert project_dir.is_dir()
+
+        storage.delete_project_folder("proj-del")
+
+        assert not project_dir.exists()
+
+    def test_no_error_for_missing_folder(self, storage):
+        # Must not raise even if the folder has never been created
+        storage.delete_project_folder("non-existent-project")
+
+    def test_returns_none(self, storage):
+        result = storage.delete_project_folder("any-project")
+        assert result is None
+
+    def test_does_not_delete_other_projects(self, storage, base_dir):
+        storage.save_source_image("proj-keep", b"keep", ".png")
+        storage.save_source_image("proj-del", b"del", ".png")
+
+        storage.delete_project_folder("proj-del")
+
+        assert (base_dir / "projects" / "proj-keep").is_dir()
+
+
 class TestProtocolCompliance:
     def test_local_file_storage_satisfies_protocol(self, storage):
         assert isinstance(storage, FileStorage)
