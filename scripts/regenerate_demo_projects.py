@@ -143,7 +143,7 @@ def create_projects():
 
         print(f"\n  [{i}/8] {cfg['name']}")
         print(f"         {cfg['target_width']}x{cfg['target_height']} stitches | "
-              f"{cfg['num_colors']} colours | {cfg['image_mode']} | {cfg['variant']}")
+              f"{cfg['num_colors']} colours | {cfg['processing_mode']} | {cfg['variant']}")
 
         with open(img_path, "rb") as f:
             files = {"file": (img_path.name, f, "image/png")}
