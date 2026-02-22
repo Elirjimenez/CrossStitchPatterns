@@ -38,6 +38,12 @@
         <dd class="font-medium text-gray-800">{{ result.num_colors }}</dd>
       </div>
       <div class="flex justify-between py-1.5">
+        <dt class="text-gray-500">Pattern type</dt>
+        <dd class="font-medium text-gray-800">
+          {% if result.variant == "bw" %}Black &amp; White{% else %}Colour{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between py-1.5">
         <dt class="text-gray-500">Generated</dt>
         <dd class="font-medium text-gray-800">{{ result.created_at }}</dd>
       </div>
