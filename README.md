@@ -1,499 +1,301 @@
 # Cross-Stitch Pattern Generator
 
-> **TFM (Final Master Project)** - Master in AI Development
-> AI-assisted development with Clean Architecture and Test-Driven Development
+> **TFM (Final Master Project)** – Master in Development with AI
+> AI-assisted development with Clean Architecture & Test-Driven Development
 
 Convert images into printable cross-stitch patterns with automatic fabric calculations, DMC thread matching, and PDF export.
 
-[![Python 3.10+](https://img.shields.io/badge/python-3.10+-blue.svg)](https://www.python.org/downloads/)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg)](https://fastapi.tiangolo.com)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg)](https://www.postgresql.org/)
-[![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/tests-539%20passing-success.svg)](./tests)
-[![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://crossstitchpatterns-production.up.railway.app/api/docs)
+---
+
+## 🎯 Project Overview
+
+The Cross-Stitch Pattern Generator is a deployable web application designed to convert images into structured cross-stitch patterns.
+
+The system provides:
+
+✔ Image → Pattern conversion
+✔ Fabric size calculation
+✔ DMC thread colour matching
+✔ Printable PDF export
+✔ Persistent project management
 
 ---
 
-## 🎯 Features
+## 🚀 Core Features
 
-### Pattern Creation
-- ✅ **Image to Pattern Conversion** - Convert any image to cross-stitch pattern
-- ✅ **DMC Thread Matching** - Automatic matching to 489 DMC embroidery colors
-- ✅ **Color Reduction** - Intelligent palette reduction (2-20 colors)
-- ✅ **Custom Dimensions** - Resize patterns or use original image size
-- ✅ **PDF Export** - Printable patterns with legend and grid
-- ✅ **Adaptive Image Mode Detection** - Automatically detects photo, drawing, or pixel art and applies the optimal resampling algorithm
+### Pattern Generation
+- ✅ Image to cross-stitch pattern conversion
+- ✅ DMC thread matching (489 colours, CIE Lab Delta E)
+- ✅ Intelligent colour reduction (2–20 colours)
+- ✅ Custom pattern dimensions
+- ✅ Black & White / Colour variants
+- ✅ Adaptive image mode detection (photo / drawing / pixel art)
 
 ### Calculations
-- ✅ **Fabric Size Calculator** - Automatic fabric requirements based on Aida count
-- ✅ **Floss Estimation** - Thread usage calculation per color
-- ✅ **Margin Calculation** - Customizable fabric margins
+- ✅ Fabric size estimation (Aida count + margin)
+- ✅ Floss/thread usage calculation per colour
+- ✅ Margin configuration
 
-### Project Management
-- ✅ **Project Tracking** - Save and manage multiple patterns
-- ✅ **Status Workflow** - Track pattern creation progress
-- ✅ **File Storage** - Store source images and generated PDFs
-- ✅ **Pattern History** - Retrieve past patterns and results
-
-### Developer Features
-- ✅ **Complete Workflow API** - Single endpoint for end-to-end pattern creation
-- ✅ **REST API** - Full API with OpenAPI documentation
-- ✅ **Health Checks** - Built-in monitoring endpoints
-- ✅ **Database Migrations** - Automatic schema management with Alembic
-
----
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- [Docker](https://www.docker.com/get-started) 20.10+
-- [Docker Compose](https://docs.docker.com/compose/) 2.0+
-
-### Run with Docker (Recommended)
-
-```bash
-# Clone the repository
-git clone https://github.com/Elirjimenez/CrossStitchPatterns.git
-cd CrossStitchPatterns
-
-# Start the application
-docker-compose -f docker/docker-compose.yml up --build
-
-# Access the application
-open http://localhost:8000/api/docs
-```
-
-That's it! 🎉 The application will:
-1. Start PostgreSQL database
-2. Run migrations automatically
-3. Launch the FastAPI application
-4. Be ready at `http://localhost:8000`
-
-### Quick Test
-
-Once running, test the complete workflow:
-
-1. Open **Swagger UI**: http://localhost:8000/api/docs
-2. Find `POST /api/projects/complete`
-3. Click "Try it out"
-4. Upload an image and fill in:
-   - **name**: "My First Pattern"
-   - **file**: Any PNG/JPG image
-   - **num_colors**: 5
-5. Click "Execute"
-6. Download your PDF from the response URL!
-
----
-
-## 🌐 Live Demo
-
-The application is deployed and accessible at:
-
-- **API Documentation**: https://crossstitchpatterns-production.up.railway.app/api/docs
-- **Health Check**: https://crossstitchpatterns-production.up.railway.app/health
-
-Try it out! Upload an image and generate your cross-stitch pattern.
-
-⚠️ **Note:** Free tier hosting, may sleep after inactivity.
-
----
-
-## 📦 Deployment
-
-### Railway (Production)
-
-The application is currently deployed on Railway with automatic PostgreSQL provisioning.
-
-**Quick Deploy:**
-```bash
-# Install Railway CLI
-npm i -g @railway/cli
-
-# Login to Railway
-railway login
-
-# Link to project or create new
-railway link  # or: railway init
-
-# Deploy
-railway up
-```
-
-**Required Environment Variables:**
-```env
-DATABASE_URL=<automatically provided by Railway PostgreSQL>
-STORAGE_DIR=/app/storage
-MAX_PATTERN_SIZE=500
-ALLOWED_ORIGINS=*
-```
-
-**Optional Environment Variables:**
-```env
-MAX_FILENAME_LENGTH=255
-ALLOWED_FILE_EXTENSIONS=.png,.jpg,.jpeg,.pdf
-DEFAULT_AIDA_COUNT=14
-APP_VERSION=0.1.0
-```
-
-**Live Instance**: https://crossstitchpatterns-production.up.railway.app
-
-### Docker Deployment (Generic)
-
-Deploy to any platform that supports Docker:
-
-**Build and Run:**
-```bash
-# Build the Docker image
-docker build -f docker/Dockerfile -t crossstitch-api .
-
-# Run with docker-compose
-docker-compose -f docker/docker-compose.yml up -d
-
-# Or run standalone (requires PostgreSQL)
-docker run -d \
-  -p 8000:8000 \
-  -e DATABASE_URL=postgresql://user:pass@db:5432/crossstitch \
-  -e STORAGE_DIR=/app/storage \
-  -v $(pwd)/storage:/app/storage \
-  crossstitch-api
-```
-
-**Requirements:**
-- PostgreSQL 15+ database
-- Persistent storage volume for files
-- Port 8000 exposed
-
-The Docker image can be deployed to any container platform (Heroku, GCP, AWS, DigitalOcean, etc.) that supports PostgreSQL and persistent storage.
+### Export & Persistence
+- ✅ Multi-page PDF export (overview + legend + grid pages)
+- ✅ PostgreSQL project persistence
+- ✅ Source image management
+- ✅ Pattern history tracking
 
 ---
 
 ## 🛠️ Technology Stack
 
-### Backend
-- **Framework**: FastAPI 0.109
-- **Python**: 3.11+
-- **Database**: PostgreSQL 15
-- **ORM**: SQLAlchemy 2.0
-- **Migrations**: Alembic
-
-### Image Processing
-- **Library**: Pillow (PIL)
-- **Color Matching**: CIE Lab color space (Delta E 2000)
-- **DMC Palette**: 400+ embroidery thread colors
-
-### PDF Generation
-- **Library**: ReportLab 4.0
-- **Features**: Multi-page patterns, color legend, grid overlay
-
-### Testing
-- **Framework**: pytest
-- **Coverage**: 311 total tests (287 core + 24 PostgreSQL integration) (80%+ coverage)
-- **Types**: Unit, Integration, Security, PostgreSQL tests
-
-### DevOps
-- **Container**: Docker (multi-stage build)
-- **Orchestration**: Docker Compose
-- **CI/CD Ready**: GitHub Actions compatible
+| Layer | Technology |
+|---|---|
+| Web framework | FastAPI 0.109 + HTMX |
+| Database | PostgreSQL 15 + SQLAlchemy 2.0 + Alembic |
+| Image processing | Pillow 10.2 (loading, resizing, format conversion) |
+| Colour matching | numpy — CIE Lab Delta E against 489 DMC colours |
+| PDF generation | ReportLab 4.0 (multi-page: overview + legend + grid) |
+| Testing | pytest — unit, integration, PostgreSQL |
+| Containerisation | Docker (multi-stage build) + Docker Compose |
+| Deployment | Railway (managed PostgreSQL + persistent storage) |
+| Python | 3.11 |
 
 ---
 
-## 📡 API Endpoints
+## 🏗️ Architecture & Project Structure
 
-### Complete Workflow
-```http
-POST /api/projects/complete
-```
-Upload image → Generate pattern → Export PDF → Save to database
-**Single API call** for entire workflow!
-
-### Pattern Operations
-```http
-POST /api/patterns/convert          # Convert image to pattern
-POST /api/patterns/export-pdf       # Export pattern to PDF
-POST /api/patterns/calculate-fabric # Calculate fabric requirements
-```
-
-### Project Management
-```http
-GET    /api/projects              # List all projects
-POST   /api/projects              # Create project
-GET    /api/projects/{id}         # Get project details
-PATCH  /api/projects/{id}/status  # Update status
-POST   /api/projects/{id}/patterns # Save pattern result
-```
-
-### File Downloads
-```http
-GET /api/projects/files/{path}  # Download PDFs and images
-```
-
-### Health & Monitoring
-```http
-GET /health  # Health check endpoint
-```
-
-📖 **Interactive API Docs**: http://localhost:8000/api/docs
-
----
-
-## 🏗️ Architecture
-
-### Deployment Architecture
-
-```mermaid
-graph LR
-    A[Client/Browser] -->|HTTPS| B[Railway Platform]
-    B -->|Routes| C[FastAPI Application]
-    C -->|Queries| D[(PostgreSQL Database)]
-    C -->|Read/Write| E[File Storage]
-
-    style A fill:#e1f5ff
-    style B fill:#ffd700
-    style C fill:#90EE90
-    style D fill:#87CEEB
-    style E fill:#FFB6C1
-```
-
-**Components:**
-- **Client**: Web browser accessing API via Swagger UI or direct API calls
-- **Railway**: Cloud platform hosting both app and PostgreSQL
-- **FastAPI**: REST API handling pattern generation, PDF export, project management
-- **PostgreSQL**: Persistent storage for projects and pattern results
-- **File Storage**: Local filesystem for source images and generated PDFs
-
-### Clean Architecture
-
-The project follows **Clean Architecture** principles:
+The project follows a **Clean Architecture** approach with a strict dependency rule: inner layers never depend on outer layers.
 
 ```
 app/
-├── domain/              # Business logic (framework-independent)
-│   ├── model/          # Entities: Pattern, Project, Palette
-│   ├── services/       # Domain services: fabric calculations, color matching
-│   └── repositories/   # Repository interfaces
-├── application/        # Use cases and application services
-│   ├── use_cases/     # Business workflows
-│   └── ports/         # Adapter interfaces
-├── infrastructure/     # External concerns
-│   ├── persistence/   # PostgreSQL repositories, Alembic migrations
-│   ├── pdf_export/    # ReportLab PDF generation
-│   ├── image_processing/ # Pillow image resizing
-│   └── storage/       # File storage (local/cloud)
-└── web/               # Web layer (FastAPI)
-    └── api/
-        ├── routes/    # API endpoints
-        └── dependencies.py # Dependency injection
+├── domain/           # Business logic — framework-independent
+│   ├── model/        # Entities: Pattern, Project, Palette (frozen dataclasses)
+│   ├── services/     # Fabric calc, colour matching, image mode detection
+│   └── repositories/ # Repository interfaces (Ports)
+├── application/      # Use cases + application services
+│   ├── use_cases/    # CreateCompletePattern, CompleteExistingProject, …
+│   └── ports/        # ImageResizer, PatternPdfExporter, FileStorage (Protocols)
+├── infrastructure/   # Adapters: PostgreSQL, Pillow, ReportLab, LocalFileStorage
+└── web/              # FastAPI routes (REST API + HTMX server-rendered UI)
 ```
 
-**Key Principles**:
-- Domain layer has **NO** dependencies on outer layers
-- All entities are **immutable** (frozen dataclasses)
-- **Dependency injection** for all repositories and services
-- **Port & Adapter** pattern for external integrations
+Dependency flow:
+
+```
+Domain ← Application ← Infrastructure
+                     ← Web
+```
+
+Key principles:
+
+✔ Domain layer has no dependencies on outer layers
+✔ Ports & Adapters — infrastructure is swappable
+✔ All domain entities are immutable (frozen dataclasses)
+✔ Dependency injection throughout
 
 ---
 
-## ⚠️ Known Limitations
+## 📡 API Reference
 
-- **Free tier hosting** may enter sleep mode after inactivity
-- **File storage** is limited by Railway volume size
-- **Pattern generation performance** depends on image size
+Interactive docs: [`/api/docs`](http://localhost:8000/api/docs) (Swagger UI) and [`/api/redoc`](http://localhost:8000/api/redoc).
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `POST` | `/api/projects/complete` | Full workflow: upload → pattern → PDF |
+| `GET` | `/api/projects` | List all projects |
+| `POST` | `/api/projects` | Create project |
+| `GET` | `/api/projects/{id}` | Get project details |
+| `PATCH` | `/api/projects/{id}/status` | Update project status |
+| `POST` | `/api/projects/{id}/source-image` | Upload source image |
+| `POST` | `/api/projects/{id}/patterns` | Save pattern result |
+| `POST` | `/api/projects/{id}/patterns/with-pdf` | Save pattern result + PDF |
+| `POST` | `/api/patterns/convert` | Convert image to pattern |
+| `POST` | `/api/patterns/export-pdf` | Export pattern to PDF |
+| `POST` | `/api/patterns/calculate-fabric` | Calculate fabric requirements |
+| `GET` | `/api/projects/files/{path}` | Download PDF or image |
+| `GET` | `/health` | Health check |
 
 ---
 
-## 🧪 Testing
+## 🧪 Testing & Quality Assurance
 
-### Run All Tests
+Development followed a **Test-Driven Development (TDD)** methodology throughout — tests were written before implementation for every feature.
+
+**Test suite:**
+
+| Category | Count |
+|---|---|
+| Unit tests (domain, use cases, services) | 356 |
+| Integration tests (SQLite + API) | 184 |
+| PostgreSQL integration tests | 23 |
+| **Total** | **563** |
+
+**Last run results:** 539 passed, 24 skipped (postgres tests skipped without a live database)
+
+**Coverage:** 96.57% — enforced via `pytest --cov=app --cov-fail-under=80`
+
+Coverage gaps are limited to abstract interfaces (Protocols/ABCs), defensive error-handling branches, and environment-dependent failure paths.
+
+---
+
+## 🤝 AI-Assisted Development
+
+This project demonstrates **responsible AI-assisted engineering** where the human developer retains full architectural and decision-making control.
+
+✔ Human-defined architecture, features, and constraints
+✔ AI-assisted implementation and test scaffolding
+✔ No autonomous AI commits — every commit is human-validated
+✔ Test suite as the validation gate for all AI-generated code
+
+**AI Role:** Technical copilot
+**Human Role:** Architect & decision-maker
+
+Full traceability in [`docs/AI_ASSISTED_DEVELOPMENT.md`](./docs/AI_ASSISTED_DEVELOPMENT.md).
+
+---
+
+## 🚀 Quick Start (Docker — Recommended)
+
+### Prerequisites
+- Docker 20.10+
+- Docker Compose 2.0+
+
+### Run
 
 ```bash
-# Activate virtual environment
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Unix/Mac
+git clone https://github.com/Elirjimenez/CrossStitchPatterns.git
+cd CrossStitchPatterns
 
-# Run all tests
-pytest
-
-# Run with coverage
-pytest --cov=app --cov-report=html
+docker-compose -f docker/docker-compose.yml up --build
 ```
 
-### PostgreSQL Integration Tests
+The system automatically starts PostgreSQL, applies Alembic migrations, and launches FastAPI.
 
-```bash
-# Start test database
-docker-compose -f docker/docker-compose.test.yml up -d
-
-# Run PostgreSQL tests
-pytest -m postgres -v
-
-# Stop test database
-docker-compose -f docker/docker-compose.test.yml down
-```
-
-📖 **PostgreSQL Testing Guide**: [docs/postgres_testing.md](./docs/postgres_testing.md)
-
-### Test Coverage
-
-- **Total Tests**: 563 total tests (539 core + 24 PostgreSQL integration)
-- **Coverage**: 80%+
-- **Unit Tests**: 351 tests (domain, use cases, services, image mode detection)
-- **Integration Tests**: 188 tests (SQLite + API)
-- **PostgreSQL Tests**: 24 integration tests (require live DB)
+Access the application at **<http://localhost:8000>**
+Interactive API docs at **<http://localhost:8000/api/docs>**
 
 ---
 
-## 💻 Local Development
+## 💻 Local Development (without Docker)
 
 ### Setup
 
 ```bash
-# Clone repository
+# Clone and set up
 git clone https://github.com/Elirjimenez/CrossStitchPatterns.git
 cd CrossStitchPatterns
-
-# Create virtual environment
 python -m venv .venv
-.venv\Scripts\activate  # Windows
-source .venv/bin/activate  # Unix/Mac
-
-# Install dependencies
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt -r requirements-dev.txt
 
-# Set up environment variables
-cp .env.example .env
-# Edit .env with your settings
+# Configure environment
+cp .env.example .env             # edit DATABASE_URL at minimum
 
-# Run migrations
+# Apply migrations and start
 alembic upgrade head
-
-# Start development server
 uvicorn app.main:app --reload
 ```
 
 ### Code Quality
 
 ```bash
-# Format code
-black app/ tests/
-
-# Type checking
-mypy app/
-
-# Linting
-ruff check app/ tests/
-
-# Run all checks
-black --check . && mypy app/ && ruff check .
-```
-
-### Development Commands
-
-```bash
-# Create new migration
-alembic revision --autogenerate -m "description"
-
-# Run tests with coverage
-pytest --cov=app --cov-report=term --cov-fail-under=80
-
-# Run tests in watch mode
-pytest-watch
+black app/ tests/                          # format
+ruff check app/ tests/                     # lint
+mypy app/                                  # type check
+pytest --cov=app --cov-fail-under=80       # tests + coverage
 ```
 
 ---
 
-## 📝 Environment Variables
+## 🔧 Environment Variables
 
-| Variable | Description | Default | Required |
-|----------|-------------|---------|----------|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/crossstitch` | Yes |
-| `STORAGE_DIR` | Directory for file storage | `storage` | Yes |
-| `MAX_PATTERN_SIZE` | Maximum pattern dimension | `500` | No |
-| `DEFAULT_AIDA_COUNT` | Default fabric count | `14` | No |
-| `ALLOWED_ORIGINS` | CORS allowed origins (comma-separated) | `http://localhost:3000,http://localhost:8000` | No |
-| `MAX_FILENAME_LENGTH` | Maximum filename length | `255` | No |
-| `ALLOWED_FILE_EXTENSIONS` | Allowed file extensions (comma-separated) | `.png,.jpg,.jpeg,.pdf` | No |
-| `APP_VERSION` | Application version | `0.1.0` | No |
+| Variable | Description | Default |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://user:pass@localhost:5432/crossstitch` |
+| `STORAGE_DIR` | Directory for uploaded files and PDFs | `storage` |
+| `MAX_COLORS` | Maximum palette colours allowed | `20` |
+| `MAX_TARGET_WIDTH` | Maximum pattern width in stitches | `300` |
+| `MAX_TARGET_HEIGHT` | Maximum pattern height in stitches | `300` |
+| `MAX_TARGET_PIXELS` | Maximum total stitches (W × H) | `90000` |
+| `MAX_INPUT_PIXELS` | Maximum source image pixels | `2000000` |
+| `DEFAULT_AIDA_COUNT` | Default Aida fabric count | `14` |
+| `ALLOWED_ORIGINS` | CORS origins (comma-separated) | `http://localhost:3000,http://localhost:8000` |
 
-**Example `.env` file**:
-```env
-DATABASE_URL=postgresql://user:pass@localhost:5432/crossstitch
-STORAGE_DIR=storage
-MAX_PATTERN_SIZE=500
-ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
-MAX_FILENAME_LENGTH=255
-ALLOWED_FILE_EXTENSIONS=.png,.jpg,.jpeg,.pdf
-```
+See [`.env.example`](./.env.example) for a ready-to-copy template.
+
+---
+
+## 🌐 Live Demo
+
+- **Web UI:** <https://crossstitchpatterns-production.up.railway.app>
+- **API Documentation:** <https://crossstitchpatterns-production.up.railway.app/api/docs>
+- **Health Check:** <https://crossstitchpatterns-production.up.railway.app/health>
+
+> ⚠️ Free-tier hosting — instance may sleep after inactivity. Allow a few seconds on first load.
+
+---
+
+## 📦 Deployment
+
+The application is deployed on **Railway** using a Docker container, managed PostgreSQL, and a persistent storage volume.
+
+Alembic migrations run automatically on every startup.
+
+See [`docs/deployment.md`](./docs/deployment.md) for full deployment instructions (Railway + Docker).
 
 ---
 
 ## 📚 Documentation
 
-- **[Deployment Guide](./docs/deployment.md)** - Complete deployment instructions
-- **[PostgreSQL Testing](./docs/postgres_testing.md)** - Database testing guide
-- **[CLAUDE.md](./CLAUDE.md)** - AI collaboration guidelines
-- **[API Docs](http://localhost:8000/api/docs)** - Interactive OpenAPI documentation
+| Document | Description |
+|---|---|
+| [`docs/AI_ASSISTED_DEVELOPMENT.md`](./docs/AI_ASSISTED_DEVELOPMENT.md) | Responsible AI collaboration traceability |
+| [`docs/ARCHITECTURE_AND_MVP_PLAN.md`](./docs/ARCHITECTURE_AND_MVP_PLAN.md) | MVP scope and architecture rationale |
+| [`docs/architecture/clean_architecture.md`](./docs/architecture/clean_architecture.md) | Clean Architecture boundaries and dependency rule |
+| [`docs/deployment.md`](./docs/deployment.md) | Deployment instructions (Docker / Railway) |
+| [`docs/postgres_testing.md`](./docs/postgres_testing.md) | How to run PostgreSQL integration tests |
+| [`docs/technical_decisions/`](./docs/technical_decisions/) | Architectural Decision Records (ADRs) |
+| [`docs/features/`](./docs/features/) | Feature-by-feature technical notes |
 
 ---
 
-## 🤝 AI-Assisted Development
+## ⚠️ Known Limitations
 
-This project demonstrates **responsible AI-assisted development**:
-
-- ✅ AI proposes, human decides
-- ✅ Strict Test-Driven Development (TDD)
-- ✅ All code changes pass tests before commit
-- ✅ Human validates architecture decisions
-- ✅ Transparent collaboration process
-
-**AI Role**: Copilot (not autopilot)
-**Human Role**: Architect, decision-maker, validator
-
-See [CLAUDE.md](./CLAUDE.md) for full AI collaboration guidelines.
+- Free-tier Railway hosting may sleep after inactivity
+- Storage volume is limited by Railway plan
+- Pattern generation time scales with image size and stitch count
 
 ---
 
 ## 📊 Project Statistics
 
-- **Lines of Code**: ~7,000 LOC (44% application code, 56% tests)
-- **Tests**: 287 passing (311 total, 80%+ coverage)
-- **API Endpoints**: 13
-- **Database Tables**: 2 (projects, pattern_results)
-- **DMC Colors**: 489 embroidery thread colors
-- **Docker Image Size**: 460MB (multi-stage build)
+| Metric | Value |
+|---|---|
+| Lines of code | ~7,000 LOC |
+| Total tests | 563 (539 passing) |
+| Code coverage | 96.57% |
+| API endpoints | 13 |
+| Database tables | 2 |
+| DMC colours | 489 |
+| Docker image | Multi-stage build |
 
 ---
 
 ## 🎓 TFM Information
 
-**Program**: Master in AI Development
-**Institution**: BigSchool
-**Academic Year**: 2025-2026
-**Deadline**: February 23, 2026
+**Programme:** Master in Development with AI
+**Academic year:** 2025–2026
+**Deadline:** 23 February 2026
 
-### TFM Deliverables
+**Deliverables:**
 
-✅ **Working Application** - Deployed and accessible
-✅ **GitHub Repository** - Public with meaningful commits
-✅ **README.md** - Complete project documentation
-✅ **Test Coverage** - 80%+ coverage requirement met
-✅ **Production Deployment** - Railway public instance available
-✅ **Presentation Slides** - Architecture and features documented
-
-### Key Achievements
-
-- Real, deployable application with practical use case
-- Clean Architecture applied pragmatically
-- Test-Driven Development throughout
-- Production-ready Docker deployment
-- Comprehensive documentation
-- AI-assisted development with human oversight
-
----
-
-## 🛡️ License
-
-This project is part of an academic thesis (TFM) and is provided for educational purposes.
+| Deliverable | Status |
+|---|---|
+| Working deployed application | ✅ Live on Railway |
+| Public GitHub repository | ✅ With meaningful commit history |
+| Complete README.md | ✅ This document |
+| Test coverage ≥ 80% | ✅ 96.57% |
+| Production-ready Docker setup | ✅ Multi-stage build |
+| Responsible AI-assisted workflow | ✅ Documented in `docs/AI_ASSISTED_DEVELOPMENT.md` |
+| Presentation slides | ✅ [Google Slides](https://docs.google.com/presentation/d/1XdOjYuN_Mn1H045irWmQ7l2YrPtPeq-ATks2H5zYsQM/edit?usp=sharing) |
 
 ---
 
