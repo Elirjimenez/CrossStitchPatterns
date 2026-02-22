@@ -35,7 +35,7 @@ Projects list page.
 | 5 | Photo – High Detail | 250 × 150 | 20 | Colour | Photo mode, max palette, largest PDF; matches 300 × 200 source aspect ratio |
 | 6 | Grayscale Portrait – B&W | 150 × 150 | 8 | B&W | B&W portrait — classic cross-stitch use case |
 | 7 | Flower – Auto Mode | 100 × 100 | 11 | Colour | Auto image mode detection; resized from 200 × 200 source |
-| 8 | Dog Silhouette – Minimal | 80 × 80 | 3 | Colour | Extreme colour reduction (3 DMC threads); resized from 150 × 150 source |
+| 8 | Dog Silhouette – Minimal | 80 × 80 | 3 | Colour | Extreme colour reduction; resized from 150 × 150 source; palette automatically capped to 3 (the actual unique colours in the image) even if a higher number is requested |
 
 ### What each project PDF contains
 
@@ -92,6 +92,7 @@ you to call any endpoint directly from the browser:
 | Colour reduction quality | Compare Project 8 (3 colours) vs Project 5 (20 colours) |
 | Image mode detection | Project 7 (auto mode selects the best processing pipeline) |
 | Image resizing | All projects — source images are resized to the requested stitch dimensions; the UI pre-fills width/height from the uploaded image but accepts any user-defined target size |
+| Automatic palette capping | Project 8 (Dog Silhouette) — requested 3 colours, system returned 3. If 10 had been requested, the result would still be 3 because the image only contains 3 distinct colour regions. The system automatically caps the palette to the number of unique colours actually present in the image, so the user never gets empty or duplicate DMC threads in the legend |
 
 ---
 
