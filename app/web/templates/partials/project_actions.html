@@ -4,7 +4,11 @@
      hx-swap="outerHTML"
      class="bg-white border border-gray-200 rounded-xl p-6 shadow-sm">
   <h3 class="text-base font-semibold text-gray-700 mb-3">Actions</h3>
-  {% with source_image_ref=source_image_ref, default_target_width=default_target_width, default_target_height=default_target_height %}
+  {% with source_image_ref=source_image_ref,
+          default_target_width=default_target_width,
+          default_target_height=default_target_height,
+          default_processing_mode=default_processing_mode,
+          default_variant=default_variant %}
     {% include "partials/generate_button.html" %}
   {% endwith %}
 </div>

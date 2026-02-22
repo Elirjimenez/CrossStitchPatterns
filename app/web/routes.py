@@ -178,7 +178,8 @@ async def project_detail(
                 "stitch_count": latest.stitch_count,
                 "num_colors": num_colors,
                 "created_at": latest.created_at.strftime("%d %b %Y %H:%M"),
-                "variant": "color",  # variant is not persisted; defaults to colour
+                "variant": latest.variant,
+                "processing_mode": latest.processing_mode,
             }
             pdf_url = f"/api/projects/files/{latest.pdf_ref}" if latest.pdf_ref else None
         else:
@@ -316,7 +317,7 @@ async def hx_upload_source_image(
         )
 
 
-def _actions_context(project, settings: Settings) -> dict:
+def _actions_context(project, settings: Settings, latest_result=None) -> dict:
     """Compute the template context for the project_actions partial."""
     w = project.source_image_width
     h = project.source_image_height
@@ -327,6 +328,8 @@ def _actions_context(project, settings: Settings) -> dict:
         "source_image_ref": project.source_image_ref,
         "default_target_width": default_target_width,
         "default_target_height": default_target_height,
+        "default_processing_mode": latest_result.processing_mode if latest_result else "auto",
+        "default_variant": latest_result.variant if latest_result else "color",
     }
 
 
@@ -335,6 +338,7 @@ async def hx_project_actions(
     project_id: str,
     request: Request,
     repo: ProjectRepository = Depends(get_project_repository),
+    pattern_result_repo: PatternResultRepository = Depends(get_pattern_result_repository),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
     """
@@ -352,10 +356,11 @@ async def hx_project_actions(
             {"success": False, "message": f"Project '{project_id}' not found."},
             status_code=404,
         )
+    latest = GetLatestPatternByProject(pattern_result_repo).execute(project_id)
     return templates.TemplateResponse(
         request,
         "partials/project_actions.html",
-        _actions_context(project, settings),
+        _actions_context(project, settings, latest),
     )
 
 
@@ -477,6 +482,7 @@ async def hx_generate_pattern(
                 "num_colors": num_palette_colors,
                 "created_at": pr.created_at.strftime("%d %b %Y %H:%M"),
                 "variant": variant,
+                "processing_mode": processing_mode,
             },
             pdf_url=pdf_url,
         )

@@ -44,7 +44,8 @@ class CreateCompletePatternRequest:
     aida_count: int = 14
     num_strands: int = 2
     margin_cm: float = 5.0
-    variant: str = "color"  # "color" or "bw"
+    variant: str = "color"           # "color" or "bw"
+    processing_mode: str = "auto"   # "auto" | "photo" | "drawing" | "pixel_art"
 
 
 @dataclass(frozen=True)
@@ -146,6 +147,7 @@ class CreateCompletePattern:
                 num_strands=request.num_strands,
                 margin_cm=request.margin_cm,
                 variant=request.variant,
+                processing_mode=request.processing_mode,
             ),
             image_resizer=self._image_resizer,
             pdf_exporter=self._pdf_exporter,
@@ -165,6 +167,8 @@ class CreateCompletePattern:
             workflow_result=workflow_result,
             pdf_ref=pdf_ref,
             pattern_result_repo=self._pattern_result_repo,
+            processing_mode=request.processing_mode,
+            variant=request.variant,
         )
 
         # Step 9: Update project status to COMPLETED

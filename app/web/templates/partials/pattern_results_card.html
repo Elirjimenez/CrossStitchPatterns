@@ -44,6 +44,15 @@
         </dd>
       </div>
       <div class="flex justify-between py-1.5">
+        <dt class="text-gray-500">Image mode</dt>
+        <dd class="font-medium text-gray-800">
+          {% if result.processing_mode == "photo" %}Photo
+          {% elif result.processing_mode == "drawing" %}Drawing / Sketch
+          {% elif result.processing_mode == "pixel_art" %}Pixel art
+          {% else %}Auto-detect{% endif %}
+        </dd>
+      </div>
+      <div class="flex justify-between py-1.5">
         <dt class="text-gray-500">Generated</dt>
         <dd class="font-medium text-gray-800">{{ result.created_at }}</dd>
       </div>

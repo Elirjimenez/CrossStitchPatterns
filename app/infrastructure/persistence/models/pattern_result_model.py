@@ -19,3 +19,5 @@ class PatternResultModel(Base):
     grid_height: Mapped[int] = mapped_column(Integer, nullable=False)
     stitch_count: Mapped[int] = mapped_column(Integer, nullable=False)
     pdf_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
+    processing_mode: Mapped[str | None] = mapped_column(String(20), nullable=True)
+    variant: Mapped[str | None] = mapped_column(String(10), nullable=True)
