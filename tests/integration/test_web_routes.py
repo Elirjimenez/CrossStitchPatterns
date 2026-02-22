@@ -503,6 +503,40 @@ class TestProjectDetailPage:
 
         assert f'upload-indicator-{project_id}' in response.text
 
+    def test_detail_page_shows_empty_state_when_no_pattern_generated(self, client):
+        """Results card shows empty state when no pattern has been generated yet."""
+        resp = client.post("/api/projects", json={"name": "Any"})
+        project_id = resp.json()["id"]
+
+        response = client.get(f"/projects/{project_id}")
+
+        assert "No pattern generated yet" in response.text
+
+    def test_detail_page_restores_results_after_generation(self, client):
+        """Navigating back to the detail page after generating a pattern shows the results."""
+        # Create project and upload source image
+        resp = client.post("/api/projects", json={"name": "Restore Test"})
+        project_id = resp.json()["id"]
+        img_bytes = _make_image_bytes("PNG")
+        client.post(
+            f"/hx/projects/{project_id}/source-image",
+            files={"file": ("test.png", img_bytes, "image/png")},
+        )
+
+        # Generate the pattern
+        client.post(
+            f"/hx/projects/{project_id}/generate",
+            data={"num_colors": "4", "target_width": "20", "target_height": "20",
+                  "processing_mode": "auto", "variant": "color"},
+        )
+
+        # Navigate back to the detail page — results must be visible
+        response = client.get(f"/projects/{project_id}")
+
+        assert "Pattern generated successfully" in response.text
+        assert "Download PDF" in response.text
+        assert "No pattern generated yet" not in response.text
+
 
 # ---------------------------------------------------------------------------
 # Task 5 — POST /hx/projects/{project_id}/source-image (upload source image)

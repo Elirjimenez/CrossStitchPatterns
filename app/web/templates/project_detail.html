@@ -56,7 +56,7 @@
          hx-swap="outerHTML"></div>
 
     <!-- C: Pattern / Results -->
-    {% with project_id=project_id %}
+    {% with project_id=project_id, success=success, result=result, pdf_url=pdf_url %}
       {% include "partials/pattern_results_card.html" %}
     {% endwith %}
 

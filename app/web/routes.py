@@ -21,6 +21,7 @@ from app.application.use_cases.complete_existing_project import (
     CompleteExistingProjectRequest,
 )
 from app.application.use_cases.create_project import CreateProject, CreateProjectRequest
+from app.application.use_cases.get_latest_pattern_by_project import GetLatestPatternByProject
 from app.application.use_cases.get_project import GetProject
 from app.application.use_cases.list_projects import ListProjects
 from app.config import Settings, get_settings
@@ -149,6 +150,7 @@ async def project_detail(
     project_id: str,
     request: Request,
     repo: ProjectRepository = Depends(get_project_repository),
+    pattern_result_repo: PatternResultRepository = Depends(get_pattern_result_repository),
     settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
     """Render the project detail page."""
@@ -165,6 +167,24 @@ async def project_detail(
             ratio = math.sqrt(settings.max_target_pixels / (default_target_width * default_target_height))
             default_target_width = max(10, int(default_target_width * ratio))
             default_target_height = max(10, int(default_target_height * ratio))
+
+        # Load the latest saved pattern result (if any) to restore the results card
+        latest = GetLatestPatternByProject(pattern_result_repo).execute(project_id)
+        if latest:
+            num_colors = len(latest.palette.get("colors", []))
+            pattern_result_ctx = {
+                "grid_width": latest.grid_width,
+                "grid_height": latest.grid_height,
+                "stitch_count": latest.stitch_count,
+                "num_colors": num_colors,
+                "created_at": latest.created_at.strftime("%d %b %Y %H:%M"),
+                "variant": "color",  # variant is not persisted; defaults to colour
+            }
+            pdf_url = f"/api/projects/files/{latest.pdf_ref}" if latest.pdf_ref else None
+        else:
+            pattern_result_ctx = None
+            pdf_url = None
+
         return templates.TemplateResponse(
             request,
             "project_detail.html",
@@ -180,6 +200,9 @@ async def project_detail(
                 "max_colors": settings.max_colors,
                 "max_target_width": settings.max_target_width,
                 "max_target_height": settings.max_target_height,
+                "success": latest is not None,
+                "result": pattern_result_ctx,
+                "pdf_url": pdf_url,
             },
         )
     except ProjectNotFoundError:

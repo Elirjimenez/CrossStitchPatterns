@@ -124,11 +124,11 @@ Development followed a **Test-Driven Development (TDD)** methodology throughout 
 | Category | Count |
 |---|---|
 | Unit tests (domain, use cases, services) | 366 |
-| Integration tests (SQLite + API) | 184 |
+| Integration tests (SQLite + API) | 186 |
 | PostgreSQL integration tests | 23 |
-| **Total** | **573** |
+| **Total** | **575** |
 
-**Last run results:** 573 passed, 0 skipped (with test DB) · 549 passed, 24 skipped (without test DB — postgres tests auto-skip)
+**Last run results:** 575 passed, 0 skipped (with test DB) · 551 passed, 24 skipped (without test DB — postgres tests auto-skip)
 
 **Coverage:** 96.57% — enforced via `pytest --cov=app --cov-fail-under=80`
 
@@ -284,7 +284,7 @@ See [`docs/deployment.md`](./docs/deployment.md) for full deployment instruction
 | Metric | Value |
 |---|---|
 | Lines of code | ~7,000 LOC |
-| Total tests | 573 (549 passing) |
+| Total tests | 575 (551 passing) |
 | Code coverage | 96.57% |
 | API endpoints | 13 |
 | Database tables | 2 |
