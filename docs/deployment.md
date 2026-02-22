@@ -167,8 +167,7 @@ docker run -e DATABASE_URL=postgresql://... crossstitch-api:latest
 ```json
 {
   "status": "healthy",
-  "version": "0.1.0",
-  "database": "connected"
+  "version": "0.1.0"
 }
 ```
 

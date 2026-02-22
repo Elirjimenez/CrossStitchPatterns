@@ -9,7 +9,7 @@ Convert images into printable cross-stitch patterns with automatic fabric calcul
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109-009688.svg)](https://fastapi.tiangolo.com)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-15-336791.svg)](https://www.postgresql.org/)
 [![Docker](https://img.shields.io/badge/Docker-ready-2496ED.svg)](https://www.docker.com/)
-[![Tests](https://img.shields.io/badge/tests-287%20passing-success.svg)](./tests)
+[![Tests](https://img.shields.io/badge/tests-539%20passing-success.svg)](./tests)
 [![Live Demo](https://img.shields.io/badge/demo-live-brightgreen.svg)](https://crossstitchpatterns-production.up.railway.app/api/docs)
 
 ---
@@ -18,10 +18,11 @@ Convert images into printable cross-stitch patterns with automatic fabric calcul
 
 ### Pattern Creation
 - ✅ **Image to Pattern Conversion** - Convert any image to cross-stitch pattern
-- ✅ **DMC Thread Matching** - Automatic matching to 400+ DMC embroidery colors
-- ✅ **Color Reduction** - Intelligent palette reduction (3-20 colors)
+- ✅ **DMC Thread Matching** - Automatic matching to 489 DMC embroidery colors
+- ✅ **Color Reduction** - Intelligent palette reduction (2-20 colors)
 - ✅ **Custom Dimensions** - Resize patterns or use original image size
 - ✅ **PDF Export** - Printable patterns with legend and grid
+- ✅ **Adaptive Image Mode Detection** - Automatically detects photo, drawing, or pixel art and applies the optimal resampling algorithm
 
 ### Calculations
 - ✅ **Fabric Size Calculator** - Automatic fabric requirements based on Aida count
@@ -334,11 +335,11 @@ docker-compose -f docker/docker-compose.test.yml down
 
 ### Test Coverage
 
-- **Total Tests**: 311 total tests (287 core + 24 PostgreSQL integration)
+- **Total Tests**: 563 total tests (539 core + 24 PostgreSQL integration)
 - **Coverage**: 80%+
-- **Unit Tests**: 239 tests (including security tests)
-- **Integration Tests**: 49 tests (SQLite)
-- **PostgreSQL Tests**: 24 integration tests
+- **Unit Tests**: 351 tests (domain, use cases, services, image mode detection)
+- **Integration Tests**: 188 tests (SQLite + API)
+- **PostgreSQL Tests**: 24 integration tests (require live DB)
 
 ---
 

@@ -14,3 +14,7 @@ build/
 *.log
 .coverage
 htmlcov/
+
+# Windows artifacts
+nul
+out/
