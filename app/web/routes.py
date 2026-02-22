@@ -323,11 +323,20 @@ def _actions_context(project, settings: Settings, latest_result=None) -> dict:
     """Compute the template context for the project_actions partial."""
     w = project.source_image_width
     h = project.source_image_height
-    default_target_width = min(w, settings.max_target_width) if w else min(300, settings.max_target_width)
-    default_target_height = min(h, settings.max_target_height) if h else min(300, settings.max_target_height)
+    image_default_w = min(w, settings.max_target_width) if w else min(300, settings.max_target_width)
+    image_default_h = min(h, settings.max_target_height) if h else min(300, settings.max_target_height)
+    if latest_result:
+        default_target_width = min(latest_result.grid_width, settings.max_target_width)
+        default_target_height = min(latest_result.grid_height, settings.max_target_height)
+        default_num_colors = len(latest_result.palette.get("colors", [])) or 10
+    else:
+        default_target_width = image_default_w
+        default_target_height = image_default_h
+        default_num_colors = 10
     return {
         "project_id": project.id,
         "source_image_ref": project.source_image_ref,
+        "default_num_colors": default_num_colors,
         "default_target_width": default_target_width,
         "default_target_height": default_target_height,
         "default_processing_mode": latest_result.processing_mode if latest_result else "auto",

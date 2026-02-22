@@ -15,7 +15,7 @@
         id="num-colors-{{ pid }}"
         type="number"
         name="num_colors"
-        value="10"
+        value="{{ default_num_colors | default(10) }}"
         min="2"
         max="{{ max_colors }}"
         class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
