@@ -175,7 +175,7 @@ def create_pattern_result(
     response_model=ProjectResponse,
     status_code=200,
 )
-def upload_source_image(
+async def upload_source_image(
     project_id: str,
     file: UploadFile = File(...),
     repo: ProjectRepository = Depends(get_project_repository),
@@ -185,7 +185,7 @@ def upload_source_image(
     if project is None:
         raise ProjectNotFoundError(f"Project '{project_id}' not found")
 
-    data = file.file.read()
+    data = await file.read()
     _, extension = os.path.splitext(file.filename or "file.bin")
     ref = storage.save_source_image(project_id, data, extension)
     repo.update_source_image_ref(project_id, ref)
@@ -199,7 +199,7 @@ def upload_source_image(
     response_model=PatternResultResponse,
     status_code=201,
 )
-def create_pattern_result_with_pdf(
+async def create_pattern_result_with_pdf(
     project_id: str,
     file: UploadFile = File(...),
     palette: str = Form(default="{}"),
@@ -210,7 +210,7 @@ def create_pattern_result_with_pdf(
     pattern_repo: PatternResultRepository = Depends(get_pattern_result_repository),
     storage: FileStorage = Depends(get_file_storage),
 ):
-    pdf_data = file.file.read()
+    pdf_data = await file.read()
     pdf_ref = storage.save_pdf(project_id, pdf_data, "pattern.pdf")
 
     try:
@@ -276,7 +276,7 @@ async def create_complete_pattern(
             settings=settings,
         )
     except DomainException as exc:
-        raise HTTPException(status_code=413, detail=str(exc))
+        raise HTTPException(status_code=422, detail=str(exc))
 
     image_data = await file.read()
 

@@ -1051,8 +1051,8 @@ class TestImageDimensionExtraction:
         assert 'value="200"' in actions.text
         assert 'value="150"' in actions.text
 
-    def test_detail_page_clamps_large_dimensions_to_500(self, client):
-        """Dimensions larger than 500 must be clamped to 500 in the actions form defaults."""
+    def test_detail_page_clamps_large_dimensions_to_max(self, client):
+        """Dimensions larger than max_target_width/height must be clamped in the actions form defaults."""
         resp = client.post("/api/projects", json={"name": "Big Image"})
         project_id = resp.json()["id"]
         png_bytes = _make_image_bytes("PNG", width=800, height=600)
@@ -1063,10 +1063,11 @@ class TestImageDimensionExtraction:
         )
 
         actions = client.get(f"/hx/projects/{project_id}/actions")
-        # Both should be clamped; value="800" and value="600" must NOT appear
+        # Both should be clamped; original values must NOT appear
         assert 'value="800"' not in actions.text
         assert 'value="600"' not in actions.text
-        assert 'value="500"' in actions.text
+        # Clamped to settings.max_target_width/height (default 300)
+        assert actions.text.count('value="300"') >= 2
 
     def test_detail_page_no_image_defaults_to_300(self, client):
         """When no image has been uploaded the actions defaults remain 300×300."""

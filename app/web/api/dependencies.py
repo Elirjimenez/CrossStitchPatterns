@@ -1,7 +1,6 @@
 from typing import Generator
 
 from fastapi import Depends
-from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
 
 from app.application.ports.file_storage import FileStorage
@@ -45,7 +44,7 @@ def get_db_session() -> Generator[Session, None, None]:
     try:
         yield session
         session.commit()
-    except SQLAlchemyError:
+    except Exception:
         session.rollback()
         raise
     finally:

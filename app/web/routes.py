@@ -293,12 +293,12 @@ async def hx_upload_source_image(
         )
 
 
-def _actions_context(project) -> dict:
+def _actions_context(project, settings: Settings) -> dict:
     """Compute the template context for the project_actions partial."""
     w = project.source_image_width
     h = project.source_image_height
-    default_target_width = min(w, 500) if w else 300
-    default_target_height = min(h, 500) if h else 300
+    default_target_width = min(w, settings.max_target_width) if w else min(300, settings.max_target_width)
+    default_target_height = min(h, settings.max_target_height) if h else min(300, settings.max_target_height)
     return {
         "project_id": project.id,
         "source_image_ref": project.source_image_ref,
@@ -312,6 +312,7 @@ async def hx_project_actions(
     project_id: str,
     request: Request,
     repo: ProjectRepository = Depends(get_project_repository),
+    settings: Settings = Depends(get_settings),
 ) -> HTMLResponse:
     """
     HTMX partial endpoint: render the Actions panel for a project.
@@ -331,7 +332,7 @@ async def hx_project_actions(
     return templates.TemplateResponse(
         request,
         "partials/project_actions.html",
-        _actions_context(project),
+        _actions_context(project, settings),
     )
 
 
