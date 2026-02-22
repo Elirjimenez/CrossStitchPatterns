@@ -144,8 +144,8 @@ class TestJsonbPostgres:
 class TestForeignKeyPostgres:
     def test_fk_rejects_orphan_pattern_result(self, pg_pattern_repo, pg_session):
         """Postgres must reject a pattern_result whose project_id does not exist."""
-        pg_pattern_repo.add(_make_pattern_result("pat-orphan", "nonexistent"))
-        with pytest.raises(Exception):
+        with pytest.raises(Exception):  # flush() inside add() triggers FK check
+            pg_pattern_repo.add(_make_pattern_result("pat-orphan", "nonexistent"))
             pg_session.commit()
 
     def test_cascade_delete_removes_pattern_results(

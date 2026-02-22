@@ -187,7 +187,10 @@ async def upload_source_image(
 
     data = await file.read()
     _, extension = os.path.splitext(file.filename or "file.bin")
-    ref = storage.save_source_image(project_id, data, extension)
+    try:
+        ref = storage.save_source_image(project_id, data, extension)
+    except ValueError as exc:
+        raise HTTPException(status_code=422, detail=str(exc))
     repo.update_source_image_ref(project_id, ref)
 
     updated = repo.get(project_id)

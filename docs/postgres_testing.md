@@ -15,14 +15,13 @@ SQLite-based tests don't validate:
 
 ### 1. Start Test Database
 
+The postgres tests connect to a **dedicated test database on port 5433**, separate from the
+development database on port 5432. Even if the dev database is already running you must
+start this container — the two do not interfere.
+
 ```bash
-# Start PostgreSQL test database in Docker
-docker-compose -f docker/docker-compose.test.yml up -d
-
-# Wait for database to be ready (health check)
-docker-compose -f docker/docker-compose.test.yml ps
-
-# You should see "healthy" status
+# Start the test database and wait until healthy
+docker-compose -f docker/docker-compose.test.yml up -d --wait
 ```
 
 ### 2. Run PostgreSQL Tests
@@ -148,14 +147,16 @@ pytest -m "not postgres"
 
 ## Automatic Skip
 
-If PostgreSQL is not available, tests are automatically skipped:
+If the test database on port 5433 is not reachable, the postgres tests skip automatically
+so the rest of the suite can still run:
 
 ```
 tests/integration/test_database_operations.py::test_can_connect SKIPPED
 [reason: PostgreSQL is not available]
 ```
 
-This allows tests to run in environments without Docker (e.g., local development).
+This means a plain `pytest` run (without the test container) reports **549 passed, 24 skipped**.
+Start the test container and run `pytest -m postgres` (or the full `pytest`) to get **573 passed, 0 skipped**.
 
 ## Troubleshooting
 

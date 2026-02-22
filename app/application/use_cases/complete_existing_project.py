@@ -124,6 +124,12 @@ class CompleteExistingProject:
             )
 
             # 6a. Save PDF
+            # Transactionality note: DB operations are transactional (managed by
+            # the session scope in get_db_session). File storage writes are
+            # best-effort — if the DB save below fails after the PDF has been
+            # written, the PDF file is orphaned on disk. This is self-healing:
+            # pattern.pdf is always overwritten on the next successful generation,
+            # and the project is marked FAILED so the user can retry.
             pdf_ref = self._file_storage.save_pdf(
                 project_id=project_id,
                 data=workflow_result.pdf_bytes,

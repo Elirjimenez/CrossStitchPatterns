@@ -300,10 +300,9 @@ class TestForeignKeyConstraints:
             pdf_ref=None,
         )
 
-        pg_pattern_repo.add(pattern_result)
-
-        # Should raise an integrity error on commit
+        # flush() inside add() triggers the FK check — wrap both
         with pytest.raises(Exception):  # SQLAlchemy IntegrityError
+            pg_pattern_repo.add(pattern_result)
             pg_session.commit()
 
     def test_cascade_delete_removes_pattern_results(

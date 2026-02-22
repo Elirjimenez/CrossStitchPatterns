@@ -13,6 +13,7 @@ class LocalFileStorage:
     # Default constants (can be overridden via constructor)
     DEFAULT_MAX_FILENAME_LENGTH = 255
     DEFAULT_ALLOWED_EXTENSIONS = {".png", ".jpg", ".jpeg", ".pdf"}
+    ALLOWED_IMAGE_EXTENSIONS = {".png", ".jpg", ".jpeg", ".gif", ".webp"}
 
     def __init__(
         self,
@@ -79,6 +80,11 @@ class LocalFileStorage:
     def save_source_image(self, project_id: str, data: bytes, extension: str) -> str:
         if not extension.startswith("."):
             extension = f".{extension}"
+        if extension.lower() not in self.ALLOWED_IMAGE_EXTENSIONS:
+            raise ValueError(
+                f"Extension {extension!r} is not allowed for source images. "
+                f"Allowed: {sorted(self.ALLOWED_IMAGE_EXTENSIONS)}"
+            )
         project_dir = self._ensure_project_dir(project_id)
         filename = f"source{extension}"
         file_path = project_dir / filename

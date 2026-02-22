@@ -48,6 +48,50 @@ class TestSaveSourceImage:
         assert ref.endswith(".png")
 
 
+class TestSaveSourceImageExtensionValidation:
+    def test_accepts_png(self, storage):
+        ref = storage.save_source_image("proj-1", b"data", ".png")
+        assert ref.endswith(".png")
+
+    def test_accepts_jpg(self, storage):
+        ref = storage.save_source_image("proj-1", b"data", ".jpg")
+        assert ref.endswith(".jpg")
+
+    def test_accepts_jpeg(self, storage):
+        ref = storage.save_source_image("proj-1", b"data", ".jpeg")
+        assert ref.endswith(".jpeg")
+
+    def test_accepts_gif(self, storage):
+        ref = storage.save_source_image("proj-1", b"data", ".gif")
+        assert ref.endswith(".gif")
+
+    def test_accepts_webp(self, storage):
+        ref = storage.save_source_image("proj-1", b"data", ".webp")
+        assert ref.endswith(".webp")
+
+    def test_rejects_exe(self, storage):
+        with pytest.raises(ValueError, match="not allowed"):
+            storage.save_source_image("proj-1", b"data", ".exe")
+
+    def test_rejects_php(self, storage):
+        with pytest.raises(ValueError, match="not allowed"):
+            storage.save_source_image("proj-1", b"data", ".php")
+
+    def test_rejects_bin(self, storage):
+        with pytest.raises(ValueError, match="not allowed"):
+            storage.save_source_image("proj-1", b"data", ".bin")
+
+    def test_rejects_pdf(self, storage):
+        # PDFs are not valid source images
+        with pytest.raises(ValueError, match="not allowed"):
+            storage.save_source_image("proj-1", b"data", ".pdf")
+
+    def test_validation_is_case_insensitive(self, storage):
+        # Uppercase extension should still be accepted
+        ref = storage.save_source_image("proj-1", b"data", ".PNG")
+        assert ref.endswith(".PNG")
+
+
 class TestSavePdf:
     def test_returns_relative_ref(self, storage):
         ref = storage.save_pdf("proj-1", b"%PDF-1.4 fake", "pattern.pdf")
