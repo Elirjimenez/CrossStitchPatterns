@@ -15,6 +15,7 @@ class Settings(BaseSettings):
     # Pattern Generation
     max_pattern_size: int = 500
     default_aida_count: int = 14
+    default_margin_cm: float = 5.0
 
     # Generation Safety Limits (Railway-safe; overridable via env vars)
     max_colors: int = 20

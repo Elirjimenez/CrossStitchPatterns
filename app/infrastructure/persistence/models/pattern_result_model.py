@@ -1,4 +1,4 @@
-from sqlalchemy import JSON, String, DateTime, Integer, Text, ForeignKey
+from sqlalchemy import JSON, String, DateTime, Float, Integer, Text, ForeignKey
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.infrastructure.persistence.database import Base
@@ -21,3 +21,5 @@ class PatternResultModel(Base):
     pdf_ref: Mapped[str | None] = mapped_column(Text, nullable=True)
     processing_mode: Mapped[str | None] = mapped_column(String(20), nullable=True)
     variant: Mapped[str | None] = mapped_column(String(10), nullable=True)
+    aida_count: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    margin_cm: Mapped[float | None] = mapped_column(Float, nullable=True)

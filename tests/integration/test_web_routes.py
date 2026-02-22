@@ -1023,6 +1023,58 @@ class TestHxGeneratePattern:
 
         assert 'id="pattern-results-card"' in response.text
 
+    # --- aida_count and margin_cm parameters ---
+
+    def test_custom_aida_count_accepted(self, generate_client):
+        """Route accepts a custom aida_count value."""
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80",
+                  "aida_count": "18"},
+        )
+
+        assert response.status_code == 200
+
+    def test_custom_margin_cm_accepted(self, generate_client):
+        """Route accepts a custom margin_cm value."""
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80",
+                  "margin_cm": "3.5"},
+        )
+
+        assert response.status_code == 200
+
+    def test_negative_margin_cm_clamped_to_zero(self, generate_client):
+        """Negative margin_cm should be clamped to 0.0 (not rejected)."""
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80",
+                  "margin_cm": "-1.0"},
+        )
+
+        assert response.status_code == 200
+
+    def test_results_card_shows_aida_count(self, generate_client):
+        """Pattern results card displays the aida_count used."""
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80",
+                  "aida_count": "16"},
+        )
+
+        assert "16" in response.text
+
+    def test_results_card_shows_margin_cm(self, generate_client):
+        """Pattern results card displays the margin_cm used."""
+        response = generate_client.post(
+            "/hx/projects/p-test-123/generate",
+            data={"num_colors": "10", "target_width": "80", "target_height": "80",
+                  "margin_cm": "7.5"},
+        )
+
+        assert "7.5" in response.text
+
 
 # ---------------------------------------------------------------------------
 # Task 7 — Image dimension extraction and form prefill
