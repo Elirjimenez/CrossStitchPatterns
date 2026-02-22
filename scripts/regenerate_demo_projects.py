@@ -31,7 +31,9 @@ PROJECTS = [
         "num_colors": 8,
         "processing_mode": "pixel_art",
         "variant": "color",
-        "aida_count": 14,
+        # 18-count Aida for fine pixel-art detail; compact 3 cm margin
+        "aida_count": 18,
+        "margin_cm": 3.0,
     },
     {
         "name": "Heart - B&W",
@@ -41,7 +43,9 @@ PROJECTS = [
         "num_colors": 4,
         "processing_mode": "drawing",
         "variant": "bw",
+        # Standard 14-count; standard 5 cm margin
         "aida_count": 14,
+        "margin_cm": 5.0,
     },
     {
         "name": "Rainbow Cupcake - Rich Colour",
@@ -51,7 +55,9 @@ PROJECTS = [
         "num_colors": 14,
         "processing_mode": "drawing",
         "variant": "color",
-        "aida_count": 14,
+        # 11-count (coarser) for a large display piece; wide 7 cm margin
+        "aida_count": 11,
+        "margin_cm": 7.0,
     },
     {
         "name": "Cartoon Cat - Drawing",
@@ -61,7 +67,9 @@ PROJECTS = [
         "num_colors": 7,
         "processing_mode": "drawing",
         "variant": "color",
-        "aida_count": 14,
+        # 16-count medium-fine fabric; 4 cm margin
+        "aida_count": 16,
+        "margin_cm": 4.0,
     },
     {
         "name": "Photo - High Detail",
@@ -71,7 +79,9 @@ PROJECTS = [
         "num_colors": 20,
         "processing_mode": "photo",
         "variant": "color",
+        # Standard 14-count; standard 5 cm margin
         "aida_count": 14,
+        "margin_cm": 5.0,
     },
     {
         "name": "Grayscale Portrait - B&W",
@@ -81,7 +91,9 @@ PROJECTS = [
         "num_colors": 8,
         "processing_mode": "photo",
         "variant": "bw",
-        "aida_count": 14,
+        # 18-count fine Aida for portrait detail; minimal 3 cm margin
+        "aida_count": 18,
+        "margin_cm": 3.0,
     },
     {
         "name": "Flower - Auto Mode",
@@ -91,7 +103,9 @@ PROJECTS = [
         "num_colors": 11,
         "processing_mode": "auto",
         "variant": "color",
-        "aida_count": 14,
+        # 20-count finest Aida for delicate floral pattern; 5 cm margin
+        "aida_count": 20,
+        "margin_cm": 5.0,
     },
     {
         "name": "Dog Silhouette - Resized",
@@ -103,7 +117,9 @@ PROJECTS = [
         "num_colors": 10,
         "processing_mode": "drawing",
         "variant": "color",
-        "aida_count": 14,
+        # 11-count coarse fabric suits the bold silhouette; generous 8 cm margin
+        "aida_count": 11,
+        "margin_cm": 8.0,
     },
 ]
 
@@ -143,7 +159,8 @@ def create_projects():
 
         print(f"\n  [{i}/8] {cfg['name']}")
         print(f"         {cfg['target_width']}x{cfg['target_height']} stitches | "
-              f"{cfg['num_colors']} colours | {cfg['processing_mode']} | {cfg['variant']}")
+              f"{cfg['num_colors']} colours | {cfg['processing_mode']} | {cfg['variant']} | "
+              f"aida={cfg['aida_count']} | margin={cfg['margin_cm']} cm")
 
         with open(img_path, "rb") as f:
             files = {"file": (img_path.name, f, "image/png")}
@@ -155,6 +172,7 @@ def create_projects():
                 "processing_mode": cfg["processing_mode"],
                 "variant": cfg["variant"],
                 "aida_count": cfg["aida_count"],
+                "margin_cm": cfg["margin_cm"],
             }
             try:
                 r = requests.post(
