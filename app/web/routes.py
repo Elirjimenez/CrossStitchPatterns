@@ -369,6 +369,7 @@ async def hx_generate_pattern(
     target_width: int = Form(default=300),
     target_height: int = Form(default=300),
     processing_mode: str = Form(default="auto"),
+    variant: str = Form(default="color"),
     use_case: CompleteExistingProject = Depends(get_complete_existing_project_use_case),
     repo: ProjectRepository = Depends(get_project_repository),
     settings: Settings = Depends(get_settings),
@@ -379,6 +380,10 @@ async def hx_generate_pattern(
     Validates numeric parameters and project state before calling the use case,
     then returns the pattern-results-card partial (HTMX outerHTML swap).
     """
+    # --- Sanitise variant (coerce unknown values to the safe default) ---
+    if variant not in ("color", "bw"):
+        variant = "color"
+
     # --- Validate numeric parameters against configured safety limits ---
     try:
         validate_generation_limits(
@@ -431,6 +436,7 @@ async def hx_generate_pattern(
                 target_width=target_width,
                 target_height=target_height,
                 processing_mode=processing_mode,
+                variant=variant,
             )
         )
         pr = result.pattern_result
@@ -447,6 +453,7 @@ async def hx_generate_pattern(
                 "stitch_count": pr.stitch_count,
                 "num_colors": num_palette_colors,
                 "created_at": pr.created_at.strftime("%d %b %Y %H:%M"),
+                "variant": variant,
             },
             pdf_url=pdf_url,
         )

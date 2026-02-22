@@ -72,6 +72,22 @@
       </select>
     </div>
 
+    <div class="mb-4">
+      <span class="block text-xs text-gray-600 mb-1">Pattern type</span>
+      <div class="flex gap-4">
+        <label class="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+          <input type="radio" name="variant" value="color" checked
+                 class="accent-indigo-600" />
+          Colour
+        </label>
+        <label class="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
+          <input type="radio" name="variant" value="bw"
+                 class="accent-indigo-600" />
+          Black &amp; White
+        </label>
+      </div>
+    </div>
+
     <button
       id="generate-btn-{{ pid }}"
       type="submit"
