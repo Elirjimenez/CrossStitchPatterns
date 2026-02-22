@@ -43,6 +43,8 @@ class PatternResult:
     pdf_ref: Optional[str]
     processing_mode: str = "auto"   # "auto" | "photo" | "drawing" | "pixel_art"
     variant: str = "color"          # "color" | "bw"
+    aida_count: int = 14
+    margin_cm: float = 5.0
 
     def __post_init__(self) -> None:
         if self.grid_width <= 0:

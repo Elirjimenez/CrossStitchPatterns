@@ -16,6 +16,8 @@ class PatternResultMapper:
             pdf_ref=domain.pdf_ref,
             processing_mode=domain.processing_mode,
             variant=domain.variant,
+            aida_count=domain.aida_count,
+            margin_cm=domain.margin_cm,
         )
 
     @staticmethod
@@ -31,4 +33,6 @@ class PatternResultMapper:
             pdf_ref=model.pdf_ref,
             processing_mode=model.processing_mode or "auto",
             variant=model.variant or "color",
+            aida_count=model.aida_count if model.aida_count is not None else 14,
+            margin_cm=model.margin_cm if model.margin_cm is not None else 5.0,
         )

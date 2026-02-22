@@ -90,6 +90,40 @@
       </div>
     </div>
 
+    <div class="mb-4">
+      <span class="block text-xs text-gray-600 mb-1">Fabric settings</span>
+      <div class="flex gap-2">
+        <div class="flex-1">
+          <label for="aida-count-{{ pid }}" class="block text-xs text-gray-400 mb-0.5">
+            Aida count
+          </label>
+          <select
+            id="aida-count-{{ pid }}"
+            name="aida_count"
+            class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
+                   focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
+            {% for ct in [11, 14, 16, 18, 20] %}
+              <option value="{{ ct }}" {% if default_aida_count == ct %}selected{% endif %}>{{ ct }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="flex-1">
+          <label for="margin-cm-{{ pid }}" class="block text-xs text-gray-400 mb-0.5">
+            Margin (cm)
+          </label>
+          <input
+            id="margin-cm-{{ pid }}"
+            type="number"
+            name="margin_cm"
+            value="{{ default_margin_cm }}"
+            min="0"
+            step="0.1"
+            class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
+                   focus:outline-none focus:ring-1 focus:ring-indigo-500" />
+        </div>
+      </div>
+    </div>
+
     <button
       id="generate-btn-{{ pid }}"
       type="submit"

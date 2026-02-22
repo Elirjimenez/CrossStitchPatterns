@@ -180,6 +180,8 @@ async def project_detail(
                 "created_at": latest.created_at.strftime("%d %b %Y %H:%M"),
                 "variant": latest.variant,
                 "processing_mode": latest.processing_mode,
+                "aida_count": latest.aida_count,
+                "margin_cm": latest.margin_cm,
             }
             pdf_url = f"/api/projects/files/{latest.pdf_ref}" if latest.pdf_ref else None
         else:
@@ -330,6 +332,11 @@ def _actions_context(project, settings: Settings, latest_result=None) -> dict:
         "default_target_height": default_target_height,
         "default_processing_mode": latest_result.processing_mode if latest_result else "auto",
         "default_variant": latest_result.variant if latest_result else "color",
+        "default_aida_count": latest_result.aida_count if latest_result else settings.default_aida_count,
+        "default_margin_cm": latest_result.margin_cm if latest_result else settings.default_margin_cm,
+        "max_colors": settings.max_colors,
+        "max_target_width": settings.max_target_width,
+        "max_target_height": settings.max_target_height,
     }
 
 
@@ -398,6 +405,8 @@ async def hx_generate_pattern(
     target_height: int = Form(default=300),
     processing_mode: str = Form(default="auto"),
     variant: str = Form(default="color"),
+    aida_count: int = Form(default=14),
+    margin_cm: float = Form(default=5.0),
     use_case: CompleteExistingProject = Depends(get_complete_existing_project_use_case),
     repo: ProjectRepository = Depends(get_project_repository),
     settings: Settings = Depends(get_settings),
@@ -457,6 +466,9 @@ async def hx_generate_pattern(
 
     # --- Run the use case ---
     try:
+        # Clamp margin_cm to >= 0 (belt-and-suspenders; Pydantic does not coerce floats)
+        margin_cm = max(0.0, margin_cm)
+
         result = use_case.execute(
             CompleteExistingProjectRequest(
                 project_id=project_id,
@@ -465,6 +477,8 @@ async def hx_generate_pattern(
                 target_height=target_height,
                 processing_mode=processing_mode,
                 variant=variant,
+                aida_count=aida_count,
+                margin_cm=margin_cm,
             )
         )
         pr = result.pattern_result
@@ -483,6 +497,8 @@ async def hx_generate_pattern(
                 "created_at": pr.created_at.strftime("%d %b %Y %H:%M"),
                 "variant": variant,
                 "processing_mode": processing_mode,
+                "aida_count": aida_count,
+                "margin_cm": margin_cm,
             },
             pdf_url=pdf_url,
         )

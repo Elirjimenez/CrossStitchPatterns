@@ -144,6 +144,8 @@ class CompleteExistingProject:
                 pattern_result_repo=self._pattern_result_repo,
                 processing_mode=request.processing_mode,
                 variant=request.variant,
+                aida_count=request.aida_count,
+                margin_cm=request.margin_cm,
             )
 
             # 6c. Mark COMPLETED
