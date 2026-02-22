@@ -267,6 +267,7 @@ See [`docs/deployment.md`](./docs/deployment.md) for full deployment instruction
 | [`docs/postgres_testing.md`](./docs/postgres_testing.md) | How to run PostgreSQL integration tests |
 | [`docs/technical_decisions/`](./docs/technical_decisions/) | Architectural Decision Records (ADRs) |
 | [`docs/features/`](./docs/features/) | Feature-by-feature technical notes |
+| [`docs/reviewer_guide.md`](./docs/reviewer_guide.md) | Pre-generated demo projects and review walkthrough |
 
 ---
 
