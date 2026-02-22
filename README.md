@@ -124,13 +124,13 @@ Development followed a **Test-Driven Development (TDD)** methodology throughout 
 | Category | Count |
 |---|---|
 | Unit tests (domain, use cases, services) | 366 |
-| Integration tests (SQLite + API) | 186 |
+| Integration tests (SQLite + API) | 191 |
 | PostgreSQL integration tests | 23 |
-| **Total** | **575** |
+| **Total** | **580** |
 
-**Last run results:** 574 passed, 1 skipped (with test DB) · 551 passed, 24 skipped (without test DB — postgres tests auto-skip)
+**Last run results:** 579 passed, 1 skipped (with test DB) · 556 passed, 24 skipped (without test DB — postgres tests auto-skip)
 
-**Coverage:** 97% — enforced via `pytest --cov=app --cov-fail-under=80`
+**Coverage:** 96% — enforced via `pytest --cov=app --cov-fail-under=80`
 
 Coverage gaps are limited to abstract interfaces (Protocols/ABCs), defensive error-handling branches, and environment-dependent failure paths.
 
@@ -284,8 +284,8 @@ See [`docs/deployment.md`](./docs/deployment.md) for full deployment instruction
 | Metric | Value |
 |---|---|
 | Lines of code | ~7,000 LOC |
-| Total tests | 575 (551 passing) |
-| Code coverage | 97% |
+| Total tests | 580 (579 passing) |
+| Code coverage | 96% |
 | API endpoints | 13 |
 | Database tables | 2 |
 | DMC colours | 489 |
@@ -306,7 +306,7 @@ See [`docs/deployment.md`](./docs/deployment.md) for full deployment instruction
 | Working deployed application | ✅ Live on Railway |
 | Public GitHub repository | ✅ With meaningful commit history |
 | Complete README.md | ✅ This document |
-| Test coverage ≥ 80% | ✅ 97% |
+| Test coverage ≥ 80% | ✅ 96% |
 | Production-ready Docker setup | ✅ Multi-stage build |
 | Responsible AI-assisted workflow | ✅ Documented in `docs/AI_ASSISTED_DEVELOPMENT.md` |
 | Presentation slides | ✅ [Google Slides](https://docs.google.com/presentation/d/1XdOjYuN_Mn1H045irWmQ7l2YrPtPeq-ATks2H5zYsQM/edit?usp=sharing) |
