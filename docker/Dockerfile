@@ -79,7 +79,7 @@ chown -R appuser:appuser "${STORAGE_DIR}"
 # Preserve args properly
 exec su -s /bin/sh appuser -c "$@"
 EOF
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Start as root so we can chown mounted volumes; entrypoint drops to appuser
 ENTRYPOINT ["/entrypoint.sh"]
