@@ -165,9 +165,10 @@ def create_projects():
                 )
                 if r.status_code in (200, 201):
                     result = r.json()
-                    pid = result.get("project_id", "?")
-                    actual_colors = len(result.get("palette", {}).get("colors", []))
-                    stitch_count = result.get("stitch_count", "?")
+                    pid = result.get("project", {}).get("id", "?")
+                    pr = result.get("pattern_result", {})
+                    actual_colors = len(pr.get("palette", {}).get("colors", []))
+                    stitch_count = pr.get("stitch_count", "?")
                     print(f"         OK Created -- project_id={pid}")
                     print(f"            Actual colours: {actual_colors}  |  Stitches: {stitch_count}")
                     results.append((cfg["name"], pid, actual_colors, stitch_count))
