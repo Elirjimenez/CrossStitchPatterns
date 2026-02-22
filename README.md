@@ -154,6 +154,10 @@ Full traceability in [`docs/AI_ASSISTED_DEVELOPMENT.md`](./docs/AI_ASSISTED_DEVE
 
 ## 🚀 Quick Start (Docker — Recommended)
 
+> **Docker is the only fully guaranteed way to run this project.**
+> It handles PostgreSQL, migrations, storage volumes, and the application
+> in a single command. Use local development only if you have a specific reason to.
+
 ### Prerequisites
 - Docker 20.10+
 - Docker Compose 2.0+
@@ -176,14 +180,23 @@ Interactive API docs at **<http://localhost:8000/api/docs>**
 
 ## 💻 Local Development (without Docker)
 
+> ⚠️ **Global Python installations are not supported.** Dependencies must be
+> installed inside a clean virtual environment. Installing packages globally or
+> into a pre-existing environment with conflicting packages may cause import
+> errors or version conflicts that are outside the scope of this project.
+
 ### Setup
 
 ```bash
 # Clone and set up
 git clone https://github.com/Elirjimenez/CrossStitchPatterns.git
 cd CrossStitchPatterns
+
+# Create and activate a clean virtual environment (required)
 python -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# Install dependencies into the venv
 pip install -r requirements.txt -r requirements-dev.txt
 
 # Configure environment
