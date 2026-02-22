@@ -22,17 +22,17 @@
 
 The Clean Architecture approach was selected to:
 
-✔ Ensure separation of concerns  
-✔ Preserve domain independence  
-✔ Facilitate deterministic testing  
-✔ Improve long-term maintainability  
+- Ensure separation of concerns  
+- Preserve domain independence  
+- Facilitate deterministic testing  
+- Improve long-term maintainability  
 
 ## Scope Control
 
 The MVP scope prioritised:
 
-✔ End-to-end functional completeness  
-✔ Architectural correctness  
-✔ Engineering quality (TDD)  
+- End-to-end functional completeness  
+- Architectural correctness  
+- Engineering quality (TDD)  
 
 Over feature expansion or premature optimisation.
