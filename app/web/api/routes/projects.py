@@ -258,6 +258,7 @@ async def create_complete_pattern(
     num_strands: int = Form(default=2, ge=1, le=6),
     margin_cm: float = Form(default=5.0, ge=0),
     variant: str = Form(default="color", pattern="^(color|bw)$"),
+    processing_mode: str = Form(default="auto"),
     use_case: CreateCompletePattern = Depends(get_create_complete_pattern_use_case),
     settings: Settings = Depends(get_settings),
 ):
@@ -295,6 +296,7 @@ async def create_complete_pattern(
         num_strands=num_strands,
         margin_cm=margin_cm,
         variant=variant,
+        processing_mode=processing_mode,
     )
 
     result = use_case.execute(request)
