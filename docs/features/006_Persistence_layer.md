@@ -63,6 +63,8 @@ This feature will persist **project and pattern metadata only** (no binary blobs
 - `grid_height`
 - `stitch_count`
 - `pdf_ref` (file path / ref)
+- `processing_mode` (str: `"auto"` | `"photo"` | `"drawing"` | `"pixel_art"`)
+- `variant` (str: `"color"` | `"bw"`)
 
 ### Explicitly Out of Scope
 - Binary blobs in DB (images / PDFs)

@@ -111,6 +111,7 @@ you to call any endpoint directly from the browser:
 | Image mode detection | Project 7 (auto mode selects the best processing pipeline) |
 | Image resizing | Project 8 — source is 150 × 150 px, pattern is 80 × 80 stitches; all other projects use native dimensions (1 px = 1 stitch) |
 | Automatic palette capping | Projects 2, 4, 7, 8 — requested colour count exceeds the number of distinct colour regions in the image; system caps the palette automatically so no empty or duplicate DMC threads appear in the legend |
+| Settings persistence across navigation | Open any completed project, note the Image type and Pattern type in the Actions panel — they reflect the values used for the last generation, not the defaults. The Results card also shows an "Image mode" row. Both values are stored in the database alongside the pattern result. |
 
 ---
 
