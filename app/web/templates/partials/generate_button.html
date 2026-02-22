@@ -65,10 +65,10 @@
         name="processing_mode"
         class="w-full text-sm border border-gray-300 rounded-lg px-3 py-1.5
                focus:outline-none focus:ring-1 focus:ring-indigo-500 bg-white">
-        <option value="auto">Auto-detect</option>
-        <option value="photo">Photo</option>
-        <option value="drawing">Drawing / Sketch</option>
-        <option value="pixel_art">Pixel art</option>
+        <option value="auto"      {% if default_processing_mode == "auto"      %}selected{% endif %}>Auto-detect</option>
+        <option value="photo"     {% if default_processing_mode == "photo"     %}selected{% endif %}>Photo</option>
+        <option value="drawing"   {% if default_processing_mode == "drawing"   %}selected{% endif %}>Drawing / Sketch</option>
+        <option value="pixel_art" {% if default_processing_mode == "pixel_art" %}selected{% endif %}>Pixel art</option>
       </select>
     </div>
 
@@ -76,12 +76,14 @@
       <span class="block text-xs text-gray-600 mb-1">Pattern type</span>
       <div class="flex gap-4">
         <label class="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
-          <input type="radio" name="variant" value="color" checked
+          <input type="radio" name="variant" value="color"
+                 {% if default_variant != "bw" %}checked{% endif %}
                  class="accent-indigo-600" />
           Colour
         </label>
         <label class="flex items-center gap-1.5 text-sm text-gray-700 cursor-pointer">
           <input type="radio" name="variant" value="bw"
+                 {% if default_variant == "bw" %}checked{% endif %}
                  class="accent-indigo-600" />
           Black &amp; White
         </label>

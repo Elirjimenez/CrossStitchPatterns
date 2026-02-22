@@ -187,6 +187,8 @@ def build_and_save_pattern_result(
     workflow_result: PatternWorkflowResult,
     pdf_ref: str,
     pattern_result_repo: PatternResultRepository,
+    processing_mode: str = "auto",
+    variant: str = "color",
 ) -> PatternResult:
     """Persist a PatternResult from the workflow output and return it."""
     stitch_counts = count_stitches_per_color(workflow_result.pattern.grid)
@@ -201,6 +203,8 @@ def build_and_save_pattern_result(
         grid_height=workflow_result.pattern.grid.height,
         stitch_count=total_stitches,
         pdf_ref=pdf_ref,
+        processing_mode=processing_mode,
+        variant=variant,
     )
     pattern_result_repo.add(pattern_result)
     return pattern_result

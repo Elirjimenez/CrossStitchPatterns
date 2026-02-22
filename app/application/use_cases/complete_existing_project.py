@@ -142,6 +142,8 @@ class CompleteExistingProject:
                 workflow_result=workflow_result,
                 pdf_ref=pdf_ref,
                 pattern_result_repo=self._pattern_result_repo,
+                processing_mode=request.processing_mode,
+                variant=request.variant,
             )
 
             # 6c. Mark COMPLETED

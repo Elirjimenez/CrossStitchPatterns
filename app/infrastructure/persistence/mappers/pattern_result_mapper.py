@@ -14,6 +14,8 @@ class PatternResultMapper:
             grid_height=domain.grid_height,
             stitch_count=domain.stitch_count,
             pdf_ref=domain.pdf_ref,
+            processing_mode=domain.processing_mode,
+            variant=domain.variant,
         )
 
     @staticmethod
@@ -27,4 +29,6 @@ class PatternResultMapper:
             grid_height=model.grid_height,
             stitch_count=model.stitch_count,
             pdf_ref=model.pdf_ref,
+            processing_mode=model.processing_mode or "auto",
+            variant=model.variant or "color",
         )
